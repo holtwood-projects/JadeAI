@@ -1,6 +1,6 @@
 # Fork 维护手册：分歧地图与上游同步
 
-本仓库是 [LingyiChen-AI/JadeAI](https://github.com/LingyiChen-AI/JadeAI) 的 fork，由 build-workbench 维护，聚焦 Docker Web 部署（已移除桌面客户端）。本文回答两个问题：**fork 与上游的差异在哪里**、**如何安全地同步上游**。
+本仓库是 [LingyiChen-AI/JadeAI](https://github.com/LingyiChen-AI/JadeAI) 的 fork，由 holtwood-projects 维护，聚焦 Docker Web 部署（已移除桌面客户端）。本文回答两个问题：**fork 与上游的差异在哪里**、**如何安全地同步上游**。
 
 ## 1. 分歧概况
 
@@ -104,6 +104,6 @@ grep -ri launchai src/ messages/ README.md
 
 `.github/workflows/upstream-sync.yml` 每周一（UTC）自动运行：fetch 上游 → 统计领先提交数 → 若有新提交且不存在未关闭的提醒 issue，则自动创建「上游同步提醒」issue（附新提交清单与本手册链接）；无新提交时不产生任何动静。支持在 Actions 页面手动触发（workflow_dispatch）。
 
-提醒 issue 依赖仓库的 Issues 功能：build-workbench/JadeAI 已于 2026-10-04 开启（GitHub fork 默认关闭 Issues；其他仓库复用本 workflow 前需在 Settings → General → Features 勾选 Issues，否则 `gh issue create` 会失败）。提醒正文由 `printf` 参数生成，上游提交信息即使含反引号等字符也只会按字面渲染，无命令注入风险。
+提醒 issue 依赖仓库的 Issues 功能：holtwood-projects/JadeAI 已于 2026-10-04 开启（GitHub fork 默认关闭 Issues；其他仓库复用本 workflow 前需在 Settings → General → Features 勾选 Issues，否则 `gh issue create` 会失败）。提醒正文由 `printf` 参数生成，上游提交信息即使含反引号等字符也只会按字面渲染，无命令注入风险。
 
 **启用前提（重要）**：GitHub fork 上定时 workflow **默认禁用**——推送后需在 Actions 页找到 Upstream Sync Check 手动 Enable；另外仓库 60 天无活动时 GitHub 会自动停用定时任务，届时同样在 Actions 页重新启用。

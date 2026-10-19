@@ -1,6 +1,6 @@
 # 开源了一个 AI 简历生成器 JadeAI：50 套模板、拖拽编辑、AI 对话优化、职业照生成、多格式导出，Docker 一键部署
 
-> GitHub: https://github.com/LessUp/JadeAI
+> GitHub: https://github.com/holtwood-projects/JadeAI
 
 大家好，分享一个我最近开源的项目 —— **JadeAI**，一个 AI 驱动的智能简历生成器。
 
@@ -220,7 +220,7 @@ docker run -d -p 3000:3000 \
 ### 本地开发
 
 ```bash
-git clone https://github.com/LessUp/JadeAI.git
+git clone https://github.com/holtwood-projects/JadeAI.git
 cd JadeAI
 pnpm install
 cp .env.example .env.local
@@ -285,7 +285,7 @@ pnpm dev
 
 项目完全开源，Apache 2.0 协议。如果觉得有用，欢迎 Star 支持一下：
 
-**GitHub: https://github.com/LessUp/JadeAI**
+**GitHub: https://github.com/holtwood-projects/JadeAI**
 
 有问题或建议欢迎提 Issue，也欢迎 PR 贡献代码。
 

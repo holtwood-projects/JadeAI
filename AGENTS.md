@@ -1,6 +1,6 @@
 # AGENTS.md — JadeAI
 
-AI 驱动的简历与求职工作台：Next.js 16 + React 19 全栈应用，提供拖拽简历编辑、AI 优化、模拟面试与多格式导出。本仓库是 [LingyiChen-AI/JadeAI](https://github.com/LingyiChen-AI/JadeAI) 的 fork，由 build-workbench 维护，聚焦 Docker Web 部署（已移除桌面客户端）。
+AI 驱动的简历与求职工作台：Next.js 16 + React 19 全栈应用，提供拖拽简历编辑、AI 优化、模拟面试与多格式导出。本仓库是 [LingyiChen-AI/JadeAI](https://github.com/LingyiChen-AI/JadeAI) 的 fork，由 holtwood-projects 维护，聚焦 Docker Web 部署（已移除桌面客户端）。
 
 ## 常用命令
 

@@ -2,7 +2,7 @@
 
 ## JadeAI 是什么
 
-> GitHub Pages：https://lessup.github.io/JadeAI | GitHub：https://github.com/LessUp/JadeAI
+> GitHub Pages：https://lessup.github.io/JadeAI | GitHub：https://github.com/holtwood-projects/JadeAI
 
 JadeAI 是一款开源的 AI 智能简历生成器，基于 AI 技术帮助用户快速创建高质量的专业简历。工具完全免费，支持自托管部署，Docker 一行命令即可启动。内置 50 套专业设计模板，提供拖拽式所见即所得编辑器，集成 AI 对话优化、一键生成简历、语法检查、JD 匹配分析、职业照生成等丰富的 AI 能力。所有 AI 功能使用用户自己的 API Key，密钥仅存储在浏览器本地，数据安全有保障。JadeAI 支持 PDF、DOCX、HTML 等多格式导出，还可以生成分享链接直接发给 HR，让简历制作变得简单而智能。
 
@@ -79,7 +79,7 @@ JadeAI 是一款开源的 AI 智能简历生成器，基于 AI 技术帮助用�
 
 - **开源协议**：Apache 2.0
 - **GitHub Pages**：https://lessup.github.io/JadeAI
-- **GitHub**：https://github.com/LessUp/JadeAI
+- **GitHub**：https://github.com/holtwood-projects/JadeAI
 - **技术栈**：Next.js 16、React 19、Tailwind CSS 4、shadcn/ui、Drizzle ORM、Vercel AI SDK v6
 - **部署方式**：Docker 一键部署 / 本地开发
 - **支持语言**：中文、英文双语界面
