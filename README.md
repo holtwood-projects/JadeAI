@@ -7,7 +7,7 @@
 拖拽编辑、AI 优化、版本历史、模拟面试、多格式导出，一站式完成简历制作与求职准备。
 
 > **本项目是 fork** — 原始项目：[**LingyiChen-AI/JadeAI**](https://github.com/LingyiChen-AI/JadeAI)（原作者 Lingyi Chen 等）。
-> 本仓库由 [build-workbench](https://github.com/build-workbench) 组织维护，遵循上游 Apache-2.0 许可。
+> 本仓库由 [holtwood-projects](https://github.com/holtwood-projects) 组织维护，遵循上游 Apache-2.0 许可。
 > 本仓库**不发布构建产物**，应用下载与最新动态请前往 [上游 Releases](https://github.com/LingyiChen-AI/JadeAI/releases/latest)。
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -15,7 +15,7 @@
 [![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)](https://www.typescriptlang.org/)
 
-[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-222?logo=githubpages)](https://build-workbench.github.io/JadeAI/)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-222?logo=githubpages)](https://holtwood-projects.github.io/JadeAI/)
 
 
 [![Powered by OrcaRouter](https://img.shields.io/badge/Powered_by-OrcaRouter-2563eb)](https://www.orcarouter.ai/)
@@ -27,7 +27,7 @@
 
 ---
 
-> 仓库首页：https://build-workbench.github.io/JadeAI/  
+> 仓库首页：https://holtwood-projects.github.io/JadeAI/  
 > GitHub Pages 只承载项目主页与说明文档；完整应用需要服务端运行环境来支持 API、认证、数据库和导出能力。
 
 ## JadeAI 是什么
@@ -280,7 +280,7 @@ PUSH=false PLATFORMS=linux/amd64 IMAGE_REPOSITORY=shuai0/jadeai pnpm docker:publ
 ### 本地开发
 
 ```bash
-git clone https://github.com/build-workbench/JadeAI.git
+git clone https://github.com/holtwood-projects/JadeAI.git
 cd JadeAI
 
 pnpm install
