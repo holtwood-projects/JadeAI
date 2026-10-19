@@ -3,13 +3,13 @@
   "version": "0.7.0",
   "private": true,
   "packageManager": "pnpm@11.0.9",
-  "homepage": "https://build-workbench.github.io/JadeAI/",
+  "homepage": "https://holtwood-projects.github.io/JadeAI/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/build-workbench/JadeAI.git"
+    "url": "git+https://github.com/holtwood-projects/JadeAI.git"
   },
   "bugs": {
-    "url": "https://github.com/build-workbench/JadeAI/issues"
+    "url": "https://github.com/holtwood-projects/JadeAI/issues"
   },
   "scripts": {
     "dev": "next dev --turbopack",
