@@ -32,6 +32,10 @@ const eslintConfig = defineConfig([
     ".worktrees/**",
     // gitignored AI 工具目录（AGENTS.md：AI 工具本地状态不入库）
     ".agents/**",
+    ".claude/**",
+    ".commandcode/**",
+    ".codex/**",
+    ".superpowers/**",
     "agent/**",
     "data/**",
   ]),

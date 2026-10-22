@@ -4,6 +4,11 @@ node_modules
 .github
 .copilot
 .agents
+.claude
+.commandcode
+.codex
+.superpowers
+agent
 .vscode
 .idea
 data

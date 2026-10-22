@@ -7,7 +7,9 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$ROOT_DIR"
 
+pnpm lint
 pnpm type-check
+pnpm test
 pnpm build
 
 SQLITE_SMOKE_DIR="$(mktemp -d)"
