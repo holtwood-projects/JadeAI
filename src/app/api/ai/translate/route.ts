@@ -8,7 +8,7 @@ import { extractJson } from '@/lib/ai/extract-json';
 import type { ResumeSection } from '@/types/resume';
 import { z } from 'zod/v4';
 import { normalizeSectionContent } from '@/lib/resume/normalize-content';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 const LANGUAGE_NAMES: Record<string, string> = {
   zh: 'Simplified Chinese',
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
-    const rate = checkRateLimit(`translate:${user.id}`, { limit: 20, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('translate', user, request), { limit: 20, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const body = await request.json();
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
       sectionsData.map((section: { sectionId: string; type: string }) => [section.sectionId, section.type])
     );
 
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig);
     const encoder = new TextEncoder();
 

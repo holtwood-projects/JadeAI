@@ -26,11 +26,24 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
     setPasswordError(false);
 
     try {
-      const url = pwd
-        ? `/api/share/${token}?password=${encodeURIComponent(pwd)}`
-        : `/api/share/${token}`;
+      const url = `/api/share/${token}`;
+      // Password goes in the body, not the query string, so it does not leak
+      // into access logs or APM traces.
+      const res = pwd
+        ? await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd }),
+        })
+        : await fetch(url);
 
-      const res = await fetch(url);
+      if (res.status === 429) {
+        // Keep the password form visible instead of showing "not found".
+        setPasswordError(true);
+        setNeedsPassword(true);
+        setLoading(false);
+        return;
+      }
 
       if (res.status === 404 || res.status === 403) {
         setNotFound(true);

@@ -5,7 +5,7 @@ import { resolveUser, getUserIdFromRequest } from '@/lib/auth/helpers';
 import { interviewRepository } from '@/lib/db/repositories/interview.repository';
 import { resumeRepository } from '@/lib/db/repositories/resume.repository';
 import { buildInterviewSystemPrompt } from '@/lib/ai/interview-prompts';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 import { dbReady } from '@/lib/db';
 import type { InterviewerConfig } from '@/types/interview';
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const user = await resolveUser(fingerprint);
     if (!user) return new Response('Unauthorized', { status: 401 });
 
-  const rate = checkRateLimit(`interview-chat:${user.id}`, { limit: 20, windowMs: 60_000 });
+  const rate = checkRateLimit(getRateLimitKey('interview-chat', user, request), { limit: 20, windowMs: 60_000 });
   if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const session = await interviewRepository.findSession(sessionId);
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig, modelId);
     const modelMessages = await convertToModelMessages(messages);
 

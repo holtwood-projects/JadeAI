@@ -16,7 +16,7 @@ import type {
   InterviewQuestion,
   QuestionEvaluation,
 } from '@/types/recruit';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 export const maxDuration = 300;
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     const access = await requireOwnedCandidate(request, id);
     if ('error' in access) return access.error;
-    const rate = checkRateLimit(`recruit-evaluation:${access.user.id}`, { limit: 10, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('recruit-evaluation', access.user, request), { limit: 10, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const { candidate, job } = access;
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       transcript: candidate.transcript,
     });
 
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig);
 
     const result = await generateText({

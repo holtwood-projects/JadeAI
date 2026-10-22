@@ -48,7 +48,7 @@ Resume generation guidelines:
 import { extractJson } from '@/lib/ai/extract-json';
 import { normalizeSectionContent } from '@/lib/resume/normalize-content';
 import { z } from 'zod/v4';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 import { safeNormalizeResumeSectionContent } from '@/lib/resume-section/schema';
 
 const generateResumeOutputSchema = z.object({
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const rate = checkRateLimit(`generate-resume:${user.id}`, { limit: 10, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('generate-resume', user, request), { limit: 10, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const body = await request.json();
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const { jobTitle, yearsOfExperience, skills, industry, experience, template, language } = parsed.data;
     const lang = language || 'zh';
 
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig);
 
     const skillsContext = skills && skills.length > 0

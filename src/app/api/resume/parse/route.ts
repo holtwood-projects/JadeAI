@@ -4,7 +4,7 @@ import { resolveUser, getUserIdFromRequest } from '@/lib/auth/helpers';
 import { resumeRepository } from '@/lib/db/repositories/resume.repository';
 import { parseResumeFile, validateResumeFile, ResumeParseError } from '@/lib/ai/parse-resume';
 import type { ParsedResume } from '@/lib/ai/parse-schema';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 
 export async function POST(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const rate = checkRateLimit(`resume-parse:${user.id}`, { limit: 10, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('resume-parse', user, request), { limit: 10, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const formData = await request.formData();
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: invalid }, { status: 400 });
     }
 
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const resumeData = await parseResumeFile(file, aiConfig);
 
     // Create resume with parsed data

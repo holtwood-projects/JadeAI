@@ -6,7 +6,7 @@ import { resumeRepository } from '@/lib/db/repositories/resume.repository';
 import { analysisRepository } from '@/lib/db/repositories/analysis.repository';
 import { jdAnalysisInputSchema, jdAnalysisOutputSchema } from '@/lib/ai/jd-analysis-schema';
 import { extractJson } from '@/lib/ai/extract-json';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 const JD_ANALYSIS_PROMPT = `You are an expert resume analyst and career coach. Analyze the match between the provided resume and job description.
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const rate = checkRateLimit(`jd-analysis:${user.id}`, { limit: 20, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('jd-analysis', user, request), { limit: 20, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const body = await request.json();
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     const resumeContext = JSON.stringify(resume.sections);
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig);
 
     const result = await generateText({

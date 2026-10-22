@@ -10,7 +10,7 @@ import {
   QUESTION_DIMENSION_LABELS,
 } from '@/lib/recruit/dimensions';
 import { requireUser } from '@/lib/recruit/access';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 export const maxDuration = 120;
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     // like the other AI routes, otherwise it is an anonymous cost-amplification vector.
     const auth = await requireUser(request);
     if ('error' in auth) return auth.error;
-    const rate = checkRateLimit(`recruit-dimensions-suggest:${auth.user.id}`, { limit: 10, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('recruit-dimensions-suggest', auth.user, request), { limit: 10, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
     const body = await request.json();
     const title = typeof body.title === 'string' ? body.title.trim() : '';
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       isGoRole,
     );
     const allowedKeys = base.map((dimension) => dimension.key);
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const result = await generateText({
       model: getModel(aiConfig),
       maxOutputTokens: 4096,

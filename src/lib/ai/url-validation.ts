@@ -1,3 +1,5 @@
+import { lookup } from 'node:dns/promises';
+
 import { AI_ALLOW_PRIVATE_HOSTS_ENV } from '@/lib/constants';
 
 /**
@@ -53,7 +55,18 @@ export type BaseUrlValidation =
   | { ok: true }
   | { ok: false; reason: string };
 
-export function validateAIBaseUrl(rawBaseUrl: string): BaseUrlValidation {
+async function resolvesToPrivateAddress(hostname: string): Promise<boolean> {
+  try {
+    const addresses = await lookup(hostname, { all: true, verbatim: true });
+    return addresses.some((entry) => isPrivateNetworkHost(entry.address));
+  } catch {
+    // An unresolvable host cannot be reached, but failing closed gives a clear
+    // error instead of deferring to the provider client's own resolution.
+    return true;
+  }
+}
+
+export async function validateAIBaseUrl(rawBaseUrl: string): Promise<BaseUrlValidation> {
   let url: URL;
   try {
     url = new URL(rawBaseUrl);
@@ -73,12 +86,26 @@ export function validateAIBaseUrl(rawBaseUrl: string): BaseUrlValidation {
     hostname === '[::1]' ||
     hostname === '::1';
 
-  if (!allowPrivate && !isLoopback && isPrivateNetworkHost(hostname)) {
-    return {
-      ok: false,
-      reason:
-        'Base URL points to a private/internal network address and was blocked. Set AI_ALLOW_PRIVATE_BASE_URL=true to allow it.',
-    };
+  if (!allowPrivate && !isLoopback) {
+    if (isPrivateNetworkHost(hostname)) {
+      return {
+        ok: false,
+        reason:
+          'Base URL points to a private/internal network address and was blocked. Set AI_ALLOW_PRIVATE_BASE_URL=true to allow it.',
+      };
+    }
+
+    // Hostname-level checks miss domains that resolve into private ranges
+    // (e.g. 169.254.169.254.nip.io). Resolve first and reject any private
+    // answer. Note: this does not pin the address for the later provider
+    // request, so DNS rebinding remains a theoretical residual risk.
+    if (await resolvesToPrivateAddress(hostname)) {
+      return {
+        ok: false,
+        reason:
+          'Base URL host resolves to a private/internal network address and was blocked. Set AI_ALLOW_PRIVATE_BASE_URL=true to allow it.',
+      };
+    }
   }
 
   return { ok: true };
