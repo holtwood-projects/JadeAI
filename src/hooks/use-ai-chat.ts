@@ -11,7 +11,6 @@ import {
   syncResumeFromServer,
 } from '@/lib/editor/resume-history-actions';
 import { countCompletedToolParts, getNextToolResultReloadState } from '@/lib/ai/chat-stream-state';
-import { ensureResumeStoreSyncedBeforeAI } from '@/lib/ai/resume-sync-guard';
 import {
   EMPTY_ASSISTANT_RESPONSE_ERROR_TEXT,
   hasRenderableAssistantReplySinceRequest,
@@ -52,6 +51,7 @@ function getLatestAssistantMessage(messages: AIChatUIMessage[]) {
   return [...messages].reverse().find((message) => message.role === 'assistant');
 }
 
+
 export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel }: UseAIChatOptions) {
   const [input, setInput] = useState('');
   const [localMessages, setLocalMessages] = useState<AIChatUIMessage[]>([]);
@@ -62,11 +62,14 @@ export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel 
   const [requestBaselineAssistantId, setRequestBaselineAssistantId] = useState<string | undefined>();
   const [requestBaselineAssistantWasRenderable, setRequestBaselineAssistantWasRenderable] = useState(false);
 
+  // useChat only recreates its internal Chat when `id` changes; a transport
+  // object rebuilt by useMemo is never picked up. Per-request values therefore
+  // travel in the sendMessage/regenerate body, which is built fresh on every
+  // call, instead of being captured by the transport.
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: '/api/ai/chat',
-        body: () => ({ resumeId, model: selectedModel, sessionId }),
         // headers must be a function — useChat never updates the transport ref,
         // so a static object would freeze stale values from before store hydration.
         headers: () => {
@@ -74,7 +77,7 @@ export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel 
           return { ...(fp ? { 'x-fingerprint': fp } : {}), ...getAIHeaders() };
         },
       }),
-    [resumeId, selectedModel, sessionId]
+    []
   );
 
 
@@ -122,6 +125,8 @@ export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel 
 
   // Track completed tool call count to detect new tool results
   const completedToolCountRef = useRef(0);
+  // Serializes reloadResume calls so a stale response cannot win.
+  const reloadRequestIdRef = useRef(0);
 
   const startStreamActivity = useCallback(() => {
     setStreamStartedAt(Date.now());
@@ -134,7 +139,9 @@ export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel 
   const sendChatMessage = useCallback(
     async (...args: Parameters<typeof rawSendMessage>) => {
       try {
-        await ensureResumeStoreSyncedBeforeAI();
+        // Upstream #96: flush the pending debounced save before the server
+        // reads the resume. This is the same path the other AI entry points use.
+        await useResumeStore.getState().flushSave();
         setPreflightError(null);
       } catch (syncError) {
         const typedError = syncError instanceof Error
@@ -147,13 +154,23 @@ export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel 
       setRequestBaselineAssistantId(baselineAssistantMessage?.id);
       setRequestBaselineAssistantWasRenderable(hasRenderableUIAssistantMessage(baselineAssistantMessage));
       startStreamActivity();
-      return rawSendMessage(...args);
+      const [message, requestOptions] = args;
+      return rawSendMessage(message, {
+        ...requestOptions,
+        body: {
+          ...(requestOptions?.body as Record<string, unknown> | undefined),
+          resumeId,
+          model: selectedModel,
+          sessionId,
+        },
+      });
     },
-    [messages, rawSendMessage, startStreamActivity]
+    [messages, rawSendMessage, startStreamActivity, resumeId, selectedModel, sessionId]
   );
 
   const reloadResume = useCallback(async () => {
     if (!resumeId) return;
+    const requestId = ++reloadRequestIdRef.current;
     try {
       const store = useResumeStore.getState();
       // Cancel any pending autosave to prevent overwriting server data
@@ -174,10 +191,16 @@ export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel 
         headers: fp ? { 'x-fingerprint': fp } : {},
       });
       if (res.ok) {
+        // Ignore a response that a newer reload (or a resume switch) made
+        // obsolete; otherwise an older snapshot can overwrite newer state.
+        if (requestId !== reloadRequestIdRef.current) return;
+        const state = useResumeStore.getState();
+        if (!state.currentResume || state.currentResume.id !== resumeId) return;
         // If the user started editing while we were fetching, don't overwrite
         // their newer work with the (older) server snapshot.
-        if (useResumeStore.getState().isDirty) return;
+        if (state.isDirty) return;
         const resume = await res.json();
+        if (requestId !== reloadRequestIdRef.current) return;
         await syncResumeFromServer(resume, {
           recordHistory: true,
           saveVersion: true,
@@ -295,19 +318,49 @@ export function useAIChat({ resumeId, sessionId, initialMessages, selectedModel 
     setPreflightError(null);
     setTerminalSessionId(sessionId);
     setLastTerminalStatus(undefined);
-    setRequestBaselineAssistantId(targetAssistantMessage.id);
-    setRequestBaselineAssistantWasRenderable(hasRenderableUIAssistantMessage(targetAssistantMessage));
+    // Do not baseline on the message being retried: regenerate reuses its id,
+    // so a baseline of "this id was already renderable" made a successful
+    // retry look like an empty response. An absent baseline means any
+    // renderable content counts as a reply.
+    setRequestBaselineAssistantId(undefined);
+    setRequestBaselineAssistantWasRenderable(false);
+
+    // A retry is another AI request: flush pending edits first, otherwise the
+    // server regenerates from the older persisted resume (upstream #96).
+    try {
+      await useResumeStore.getState().flushSave();
+    } catch (syncError) {
+      setPreflightError(
+        syncError instanceof Error
+          ? syncError
+          : new Error('Failed to sync the latest resume before retrying.')
+      );
+      return;
+    }
+
     startStreamActivity();
 
     try {
-      await rawRegenerate({ messageId: targetAssistantMessage.id });
+      await rawRegenerate({
+        messageId: targetAssistantMessage.id,
+        body: { resumeId, model: selectedModel, sessionId },
+      });
     } catch (retryError) {
       console.error('Failed to retry AI message:', retryError);
       resetStreamActivity();
       setTerminalSessionId(sessionId);
       setLastTerminalStatus('error');
     }
-  }, [clearError, messages, rawRegenerate, resetStreamActivity, sessionId, startStreamActivity]);
+  }, [
+    clearError,
+    messages,
+    rawRegenerate,
+    resetStreamActivity,
+    resumeId,
+    selectedModel,
+    sessionId,
+    startStreamActivity,
+  ]);
 
   const resetTerminalState = useCallback(() => {
     setRequestBaselineAssistantId(undefined);

@@ -17,6 +17,44 @@ import { useEditorStore } from '@/stores/editor-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { normalizeSectionContent } from '@/lib/resume/normalize-content';
 
+/**
+ * Best-effort PUT of a captured draft, independent of the current store
+ * state. Used by reset() so an unmount cannot discard edits, even while a
+ * previous save is still in flight.
+ */
+async function putResumeDraft(resume: Resume, sections: ResumeSection[]): Promise<void> {
+  const fingerprint = typeof window !== 'undefined'
+    ? localStorage.getItem('jade_fingerprint')
+    : null;
+  const response = await fetch(`/api/resume/${resume.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(fingerprint ? { 'x-fingerprint': fingerprint } : {}),
+    },
+    body: JSON.stringify({
+      title: resume.title,
+      template: resume.template,
+      themeConfig: resume.themeConfig,
+      language: resume.language,
+      sections: sections.map((section, index) => ({
+        id: section.id,
+        type: section.type,
+        title: section.title,
+        sortOrder: index,
+        visible: section.visible,
+        content: section.content,
+      })),
+    }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(
+      typeof data?.error === 'string' ? data.error : 'Failed to save resume'
+    );
+  }
+}
+
 interface ResumeStore {
   currentResume: Resume | null;
   sections: ResumeSection[];
@@ -168,6 +206,10 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       currentResume: { ...resume, sections },
       sections,
       isDirty: false,
+      // The store now shows a different resume; the old save may still be in
+      // flight, but its "saving" UI state no longer applies. `_savePromise`
+      // stays until that request settles so saves remain serialized.
+      isSaving: false,
       _saveTimeout: null,
     });
   },
@@ -283,13 +325,18 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
 
   save: async (options) => {
     const source = options?.source ?? 'manual';
-    // 已经有一次在飞就先等它落地。两次 PUT 并行的话，先发的那次可能后到，
-    // 于是旧内容盖掉新内容——防抖保存和 flushSave 撞在一起时正好会这样。
-    const inFlight = get()._savePromise;
-    if (inFlight) await inFlight;
+    // Serialize saves. Two concurrent PUTs can land out of order and let the
+    // older body win; waiting in a loop (not a single read) also covers the
+    // case where another caller starts a save while we are waiting. The old
+    // `isSaving` early-return silently dropped queued saves (upstream #96).
+    while (true) {
+      const inFlight = get()._savePromise;
+      if (!inFlight) break;
+      await inFlight.catch(() => {});
+    }
 
-    const { currentResume, sections, isDirty, isSaving } = get();
-    if (!currentResume || isSaving) return;
+    const { currentResume, sections, isDirty } = get();
+    if (!currentResume) return;
     const requestedDraftSnapshot = createResumeDraftSnapshot({
       ...currentResume,
       sections,
@@ -439,11 +486,10 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to save resume:', error);
     } finally {
-      // Only clear isSaving/_savePromise for the resume this save belongs to —
-      // if the user already navigated to another resume, its own in-flight save
-      // flag must not be touched (clearing it could allow a duplicate concurrent PUT).
-      const currentStoreResume = get().currentResume;
-      if (!currentStoreResume || currentStoreResume.id === currentResume.id) {
+      // A newer save may already have replaced the in-flight slot; only clear
+      // the one this call owns. Checking the promise (not the resume id) also
+      // clears isSaving after navigation, which otherwise stayed true forever.
+      if (get()._savePromise === request) {
         set({ isSaving: false, _savePromise: null });
       }
     }
@@ -466,6 +512,13 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       set({ _saveTimeout: null });
     }
     await get().save();
+    // save() swallows background failures to keep autosave quiet. Callers use
+    // flushSave before handing the resume to the server, so they must know
+    // when the flush did not actually persist anything.
+    const state = get();
+    if (state.isDirty && !state.isSaving) {
+      throw new Error('Failed to save the latest resume before the AI request.');
+    }
   },
 
   _scheduleSave: () => {
@@ -491,16 +544,25 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
   },
 
   reset: () => {
-    const { _saveTimeout, currentResume, isDirty, isSaving } = get();
-    if (_saveTimeout) clearTimeout(_saveTimeout);
+    const state = get();
+    if (state._saveTimeout) clearTimeout(state._saveTimeout);
     // Flush any edits still pending in the autosave window before clearing the
     // store — the editor page unmounts right after reset(), so cancelling the
-    // timer would otherwise silently discard them. save() snapshots the draft
-    // synchronously, so the PUT is issued with the pre-reset state.
-    if (currentResume && isDirty && !isSaving) {
-      void get().save({ source: 'autosave' }).catch(() => {
-        // Best-effort flush on unmount.
-      });
+    // timer would otherwise silently discard them. Capture the draft now and
+    // queue the PUT behind any in-flight save; calling save() here would read
+    // the cleared store after waiting.
+    if (state.currentResume && state.isDirty) {
+      const draftResume = state.currentResume;
+      const draftSections = state.sections;
+      const inFlight = state._savePromise;
+      void (async () => {
+        try {
+          if (inFlight) await inFlight.catch(() => {});
+          await putResumeDraft(draftResume, draftSections);
+        } catch (error) {
+          console.error('Failed to flush resume before reset:', error);
+        }
+      })();
     }
     set({
       currentResume: null,
@@ -508,7 +570,8 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       isDirty: false,
       isSaving: false,
       _saveTimeout: null,
-      _savePromise: null,
+      // Do not clear _savePromise: an older PUT may still be in flight and
+      // must remain serialized. Its finally block clears the slot.
     });
   },
 }));
