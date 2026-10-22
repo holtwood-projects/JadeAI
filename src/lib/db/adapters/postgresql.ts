@@ -66,8 +66,9 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
       if (isConcurrentSeedError(e)) {
         return;
       }
-      console.error('[DB] PostgreSQL auto-seed failed:', e);
-      throw e;
+      // Demo data is optional; a transient seed failure must not make dbReady
+      // permanently rejected for the whole process.
+      console.error('[DB] PostgreSQL auto-seed failed (continuing without demo data):', e);
     }
   }
 

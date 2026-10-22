@@ -26,7 +26,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",
-    "test:db-config": "vitest run src/lib/db/config.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:generate:pg": "drizzle-kit generate --config drizzle-pg.config.ts",
     "db:migrate": "drizzle-kit migrate",
