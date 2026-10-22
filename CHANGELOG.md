@@ -8,6 +8,15 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 
 ### 新增
 
+- PDF 导出新增「连续长页」排版：按内容实际高度生成单页 PDF（上限 18000px），保留 A4 与智能一页选项；导出对话框、预览页与中英文案同步更新。
+- PDF 快照导出：POST 请求携带当前编辑器状态（含未保存的分节顺序），无需先保存即可导出；限制 2 MiB、10s 上传与 35s 渲染超时，并限制并发渲染为 2。
+- 导出请求支持取消与整体超时；Chromium 启动、渲染、关闭均有超时与 SIGKILL 兜底，避免挂起进程泄漏。
+- 连续长页导出会移除末尾空白页，同时保留纯图片/背景页。
+
+### 变更
+
+- 匿名模式下 AI 与简历相关接口的限流改为按客户端地址分桶，不再信任可伪造的 `x-fingerprint`；反向代理部署需设置 `TRUST_PROXY=true` 才能按真实 IP 分桶。
+- AI 模型切换改为每次发送时读取最新选择，不再受会话 transport 缓存影响。
 - 官网落地页导航新增「招聘」入口（桌面端与移动端），同步上游并补齐中英文案。
 
 ### 变更
@@ -19,6 +28,25 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 
 ### 修复
 
+- PDF 智能一页：修正字号缩放与 CSS zoom 叠加导致的过度缩小；失败时恢复原始排版并返回 `X-PDF-Fit-One-Page: failed` 响应头，客户端会提示「已按标准分页导出」，不再静默当作成功。
+- PDF 字体：预览端主题字体不再被模板内联 `font-family` 覆盖，选字体在预览与导出中保持一致。
+- 数据库迁移：修正 recruit 迁移时间戳倒序导致 drizzle 静默跳过 `recruit_jobs` 表的问题（SQLite 与 PostgreSQL）。
+- AI 会话：修复保存失败时同步守卫无限重试、重试已有输出的消息后误报空响应，以及同一会话切换模型不生效。
+- AI 上下文：长会话截断后保证首条为 user，避免强制 user-first 的提供商直接返回 400。
+- 编辑器：修复工具调用后并发重载时旧响应覆盖新快照，以及版本还原保存失败仍提示成功的问题。
+- 数据库：SQLite 迁移遇到 `already exists` 时校验迁移账本是否推进到最新条目，否则拒绝以残缺 schema 启动；示例数据填充失败不再让 `dbReady` 永久 reject。
+- 迁移：recruit 迁移改为幂等 DDL，兼容「上游血统」「merge 后已有表」「全新库」三种升级路径；PostgreSQL 外键迁移时间戳与幂等性修正。
+- 保存：修复并发保存被 `isSaving` 早退丢弃、`flushSave` 提前放行、卸载时在飞请求失去串行化；AI 对话与重试统一走 `flushSave`。
+- 数据完整性：板块内容校验失败时只丢弃非法条目并保留其余条目，不再整段清空；匿名会话 cookie 与 `x-fingerprint` 不一致时以签名 cookie 为准，不再永久 401。
+- 字体：导出 HTML/PDF 内嵌 Inter 可变字体；DOCX 不再写入终端未安装的内置字体，回退 Microsoft YaHei；衬线/等宽字体栈把通用族放在内置中文字体之前，避免 PDF 中 Georgia/Courier 被替换。
+- 主题：读取时解码旧版 JSON 字符串/字符键 themeConfig；颜色输入框支持逐字输入 6 位色值。
+- 数据库：仅设置 `DATABASE_URL` 时按文档所述选择 PostgreSQL 并提示，不再静默使用 SQLite；`DB_TYPE` 支持大小写/空格并拒绝无效值；删除未被调用的 `db/config.ts`。
+- 安全：AI provider 请求拒绝跨源重定向（SSRF）；分享密码改为 POST body；面试报告生成/导出补限流与 Chromium 并发闸门；限流 key 对超长 token 做定长哈希。
+- PDF：分节间距只修改实际生效的 margin/padding 属性；横向压缩下限提升到安全打印边距；swiss 标题横线按可用边距收缩。
+- 构建与发布：CI 在 main 上增加 Docker 镜像构建与启动冒烟（PR 可用 `ci:docker` 标签触发、支持手动运行）；冒烟改为真实 A4/continuous PDF 导出并断言 tini 为 PID 1；发布检查补充 lint/test 与脏工作区、非 main 分支保护；Docker 构建上下文与 tsconfig/eslint 补齐 AI 工具目录排除。
+- Docker：apt 强制 IPv4，修复部分 WSL/Docker 环境 DNS 只返回 IPv6 导致镜像构建卡在 `apt-get update` 的问题。
+- 安全：AI 路由限流不再信任可伪造的指纹；分享密码限流在未配置可信代理时忽略 `X-Forwarded-For`；AI base URL 增加 DNS 解析校验，阻止解析到内网地址的域名（如 `169.254.169.254.nip.io`）。
+- Docker：不再无条件设置 `CHROME_PATH`，`INSTALL_CHROMIUM=false` 时下载回退重新可用；修正安全源镜像被主源 sed 提前替换的问题。
 - 安全：加固 AI 路由限流、SSRF 防护、分享密码与部署安全，并修复越权、数据丢失与渲染崩溃等缺陷。
 - PDF 导出：注入 `keepNames` 的 `__name` 垫片、修正分页上下文返回类型，修复导出页边距过窄与文本块显示。
 - AI 会话与前端：修复重试恢复、历史显示时序与工具步骤持久化，以及拖拽取消、会话删除与切换竞态。
