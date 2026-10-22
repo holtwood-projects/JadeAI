@@ -140,7 +140,7 @@ describe('pdf regression suite', () => {
     const resume = getPdfRegressionFixture('swiss-page-gap');
     const html = await generatePdfHtml(resume as any, TEST_FONT_BASE_URL);
     expect(html).toMatch(/data-section-heading="wide"/);
-    expect(html).toMatch(/margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px/);
+    expect(html).toMatch(/margin-left:calc\(-1 \* min\(10px, var\(--base-margin-left/);
   });
 
   testWithPdfRenderer('gradient export reserves physical page safe margins', async () => {

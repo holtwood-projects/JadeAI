@@ -2,8 +2,18 @@
 import { CHINESE_RESUME_FONT_STACK } from '@/lib/font-stacks';
 import { buildThemeCss } from './build-theme-css';
 import { DEFAULT_THEME } from './default-theme';
-import { mergeThemeConfig, normalizeFontStack } from './theme-config';
+import { mergeThemeConfig, normalizeFontStack, normalizeThemeConfig } from './theme-config';
 import { test, expect } from 'vitest';
+
+test('decodes legacy theme JSON and character-key objects on read', () => {
+  expect(normalizeThemeConfig('{"accentColor":"#123456"}' as never).accentColor).toBe('#123456');
+  const characterKeys = Object.fromEntries(
+    Array.from('{"accentColor":"#654321"}', (character, index) => [index, character])
+  );
+  expect(normalizeThemeConfig(characterKeys as never).accentColor).toBe('#654321');
+  // Malformed legacy values fall back to defaults instead of throwing on read.
+  expect(normalizeThemeConfig('not json' as never).accentColor).toBe(DEFAULT_THEME.accentColor);
+});
 
 test('normalizes theme colors, numbers, and font stacks', () => {
   const theme = mergeThemeConfig({
@@ -37,7 +47,7 @@ test('rejects font stacks that can break out of CSS declarations', () => {
 test('normalizes font stacks token-by-token and keeps valid families', () => {
   const fallback = normalizeFontStack(DEFAULT_THEME.fontFamily);
 
-  expect(normalizeFontStack('"Inter", "Noto Sans SC", sans-serif')).toBe('Inter, "Noto Sans SC", sans-serif');
+  expect(normalizeFontStack('"Inter", "Noto Sans SC", sans-serif')).toBe('Inter, sans-serif, "Noto Sans SC"');
   expect(normalizeFontStack('sans-serif, "Noto Sans SC", "Inter", url(https://bad.font)')).toBe('sans-serif, "Noto Sans SC", Inter');
   expect(normalizeFontStack('url(https://bad.font), ;;;')).toBe(fallback);
 });
@@ -60,7 +70,7 @@ test('buildThemeCss only emits normalized theme values', () => {
   expect(css).toMatch(/color: #1a1a1a !important/);
   expect(css).toMatch(/border-color: #ddeeff !important/);
   expect(css).not.toMatch(/color:red/);
-  expect(css).toMatch(/font-family: Inter, "Noto Sans SC", sans-serif !important/);
+  expect(css).toMatch(/font-family: Inter, sans-serif, "Noto Sans SC" !important/);
   expect(css).toMatch(/padding-top: 0px !important/);
   expect(css).toMatch(/padding-right: 60px !important/);
   expect(css).toMatch(/--base-section-spacing: 64px/);

@@ -15,8 +15,8 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
   const { id } = use(params);
   const router = useRouter();
   const t = useTranslations();
-  const { exportPdf, isExporting } = usePdfExport();
   const [resume, setResume] = useState<Resume | null>(null);
+  const { exportPdf, isExporting } = usePdfExport(resume);
 
   useEffect(() => {
     const fingerprint = localStorage.getItem('jade_fingerprint');
@@ -43,7 +43,7 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
         <Button
           size="sm"
           disabled={isExporting}
-          onClick={() => exportPdf(id, resume.title)}
+          onClick={() => { void exportPdf(`${resume.title || 'resume'}.pdf`, 'a4').catch(console.error); }}
           className="cursor-pointer gap-1 bg-brand hover:bg-brand-hover"
         >
           <Download className="h-4 w-4" />
@@ -68,7 +68,7 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
         </Button>
         <Button
           className="flex-1 cursor-pointer bg-brand hover:bg-brand-hover"
-          onClick={() => exportPdf(id, resume.title)}
+          onClick={() => { void exportPdf(`${resume.title || 'resume'}.pdf`, 'a4').catch(console.error); }}
           disabled={isExporting}
         >
           <Download className="mr-1.5 h-4 w-4" />

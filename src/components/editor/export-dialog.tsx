@@ -12,7 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 import { useResumeStore } from '@/stores/resume-store';
+import { usePdfExport } from '@/hooks/use-pdf-export';
+import type { PdfLayout } from '@/lib/pdf/layout';
 import {
   FileDown,
   FileText,
@@ -31,7 +34,7 @@ interface ExportDialogProps {
   resumeId: string;
 }
 
-type ExportFormat = 'pdf' | 'pdf-one-page' | 'docx' | 'html' | 'txt' | 'json';
+type ExportFormat = 'pdf' | 'pdf-one-page' | 'pdf-continuous' | 'docx' | 'html' | 'txt' | 'json';
 type ExportState = 'idle' | 'exporting' | 'success' | 'error';
 
 const FORMAT_OPTIONS: {
@@ -43,6 +46,7 @@ const FORMAT_OPTIONS: {
 }[] = [
   { value: 'pdf', icon: FileDown, labelKey: 'pdf', descKey: 'pdfDescription' },
   { value: 'pdf-one-page', icon: Sparkles, labelKey: 'pdfOnePage', descKey: 'pdfOnePageDescription', tooltipKey: 'pdfOnePageTooltip' },
+  { value: 'pdf-continuous', icon: AlignLeft, labelKey: 'pdfContinuous', descKey: 'pdfContinuousDescription' },
   { value: 'docx', icon: FileText, labelKey: 'docx', descKey: 'docxDescription' },
   { value: 'html', icon: Globe, labelKey: 'html', descKey: 'htmlDescription' },
   { value: 'txt', icon: AlignLeft, labelKey: 'txt', descKey: 'txtDescription' },
@@ -52,6 +56,7 @@ const FORMAT_OPTIONS: {
 export function ExportDialog({ open, onOpenChange, resumeId }: ExportDialogProps) {
   const t = useTranslations('export');
   const { currentResume, isDirty, save } = useResumeStore();
+  const { exportPdf } = usePdfExport(currentResume);
 
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('pdf');
   const [state, setState] = useState<ExportState>('idle');
@@ -72,6 +77,9 @@ export function ExportDialog({ open, onOpenChange, resumeId }: ExportDialogProps
   // where the user can "Save as PDF" (issue #85).
   const handlePrintFallback = useCallback(async () => {
     try {
+      // The fallback fetches the persisted HTML; flush first so unsaved edits
+      // are included (snapshot export removed the up-front save).
+      await useResumeStore.getState().flushSave();
       const fingerprint = localStorage.getItem('jade_fingerprint');
       const res = await fetch(`/api/resume/${resumeId}/export?format=html&forPrint=true`, {
         headers: { ...(fingerprint ? { 'x-fingerprint': fingerprint } : {}) },
@@ -112,44 +120,56 @@ export function ExportDialog({ open, onOpenChange, resumeId }: ExportDialogProps
     setCanPrintFallback(false);
 
     try {
-      // Save first if dirty
-      if (isDirty) await save();
-
-      const fingerprint = localStorage.getItem('jade_fingerprint');
-      const queryFormat = selectedFormat === 'pdf-one-page' ? 'pdf' : selectedFormat;
-      const fitParam = selectedFormat === 'pdf-one-page' ? '&fitOnePage=true' : '';
-      const res = await fetch(`/api/resume/${resumeId}/export?format=${queryFormat}${fitParam}`, {
-        headers: {
-          ...(fingerprint ? { 'x-fingerprint': fingerprint } : {}),
-        },
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Export failed');
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-
       const title = currentResume?.title || 'resume';
       const now = new Date();
       const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-      const extMap: Record<ExportFormat, string> = {
-        'pdf': 'pdf',
-        'pdf-one-page': 'pdf',
-        'docx': 'docx',
-        'html': 'html',
-        'txt': 'txt',
-        'json': 'json',
-      };
-      a.download = `${title}-${ts}.${extMap[selectedFormat]}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const filename = `${title}-${ts}`;
+
+      if (
+        selectedFormat === 'pdf'
+        || selectedFormat === 'pdf-one-page'
+        || selectedFormat === 'pdf-continuous'
+      ) {
+        const layout: PdfLayout = selectedFormat === 'pdf-one-page'
+          ? 'fit-one-page'
+          : selectedFormat === 'pdf-continuous'
+            ? 'continuous'
+            : 'a4';
+        // Snapshot export renders the current editor state, so unsaved edits
+        // (including drag-reordered sections) are included without a save.
+        const result = await exportPdf(`${filename}.pdf`, layout);
+        if (result?.fitOnePageFailed) {
+          toast.warning(t('pdfFitFailed'));
+        }
+      } else {
+        // Other formats still render from the persisted record.
+        if (isDirty) await save();
+
+        const fingerprint = localStorage.getItem('jade_fingerprint');
+        const res = await fetch(`/api/resume/${resumeId}/export?format=${selectedFormat}`, {
+          headers: {
+            ...(fingerprint ? { 'x-fingerprint': fingerprint } : {}),
+          },
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Export failed');
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        try {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${filename}.${selectedFormat}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
 
       setState('success');
       setTimeout(() => onOpenChange(false), 1500);
@@ -158,9 +178,13 @@ export function ExportDialog({ open, onOpenChange, resumeId }: ExportDialogProps
       setState('error');
       setErrorMessage(message);
       // Offer the browser-print fallback only for the PDF formats.
-      setCanPrintFallback(selectedFormat === 'pdf' || selectedFormat === 'pdf-one-page');
+      setCanPrintFallback(
+        selectedFormat === 'pdf'
+        || selectedFormat === 'pdf-one-page'
+        || selectedFormat === 'pdf-continuous'
+      );
     }
-  }, [resumeId, selectedFormat, currentResume, isDirty, save, onOpenChange, t]);
+  }, [resumeId, selectedFormat, currentResume, isDirty, save, exportPdf, onOpenChange, t]);
 
   const isLoading = state === 'exporting';
 

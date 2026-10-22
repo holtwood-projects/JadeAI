@@ -1,4 +1,5 @@
 import { resolveFontStack } from '@/lib/font-stacks';
+import { parseThemeConfig } from '@/lib/resume/parse-theme-config';
 import type { ThemeConfig } from '@/types/resume';
 import { DEFAULT_THEME } from './default-theme';
 
@@ -77,7 +78,16 @@ export function normalizeFontStack(value: unknown): string {
 }
 
 export function normalizeThemeConfig(theme?: ThemeConfigInput | null): ThemeConfig {
-  const source = theme || {};
+  // Legacy rows may hold a JSON string or an object with character keys
+  // (from spreading a serialized theme). Decode before reading properties;
+  // malformed values fall back to the defaults instead of throwing on read.
+  let parsed: Partial<ThemeConfig> | null = null;
+  try {
+    parsed = parseThemeConfig(theme);
+  } catch {
+    parsed = null;
+  }
+  const source = (parsed || {}) as ThemeConfigInput;
   const marginSource: Partial<ThemeConfig['margin']> = source.margin || {};
 
   const margin = (['top', 'right', 'bottom', 'left'] as MarginSide[]).reduce<ThemeConfig['margin']>(
@@ -105,12 +115,19 @@ export function normalizeThemeConfig(theme?: ThemeConfigInput | null): ThemeConf
 }
 
 export function mergeThemeConfig(theme?: ThemeConfigInput | null): ThemeConfig {
+  let parsed: Partial<ThemeConfig> | null = null;
+  try {
+    parsed = parseThemeConfig(theme);
+  } catch {
+    parsed = null;
+  }
+  const source = (parsed || {}) as ThemeConfigInput;
   return normalizeThemeConfig({
     ...DEFAULT_THEME,
-    ...theme,
+    ...source,
     margin: {
       ...DEFAULT_THEME.margin,
-      ...(theme?.margin || {}),
+      ...(source.margin || {}),
     },
   });
 }

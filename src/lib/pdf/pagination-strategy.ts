@@ -9,6 +9,7 @@ import type {
   ShrinkTarget,
   SurfaceMode,
 } from './layout-profile';
+import { PDF_SAFE_PAGE_MARGIN_PX } from './page-margins';
 
 export const A4_WIDTH_PX = 794;
 export const A4_HEIGHT_PX = 1123;
@@ -137,10 +138,14 @@ function buildShrinkCSS(
   }
 
   if (state.sectionSpacingDelta > 0) {
+    // Match the theme's own spacing model: padding-based templates use
+    // padding-bottom, margin-based templates use margin-bottom. Setting both
+    // added spacing to properties that were originally 0 and could make the
+    // first shrink iteration taller.
+    const spacingProperty = context.needsPadding ? 'margin-bottom' : 'padding-bottom';
     rules.push(`
       ${sel} [data-section] {
-        margin-bottom: calc(var(--base-section-spacing) - ${state.sectionSpacingDelta}px) !important;
-        padding-bottom: calc(var(--base-section-spacing) - ${state.sectionSpacingDelta}px) !important;
+        ${spacingProperty}: calc(var(--base-section-spacing) - ${state.sectionSpacingDelta}px) !important;
       }
     `);
   }
@@ -347,7 +352,14 @@ export function getMaxMarginDelta(context: PaginationContext): number {
     return Math.max(0, Math.round(context.childPaddingTop - context.fragmentPaddingFloor));
   }
 
-  return Math.max(0, Math.round(Math.min(context.marginLeft, context.marginRight) - 8));
+  // Never compress past the printable safety margin; 8px (≈2.1mm) is inside
+  // the non-printable area of most printers.
+  return Math.max(
+    0,
+    Math.round(
+      Math.min(context.marginLeft, context.marginRight) - PDF_SAFE_PAGE_MARGIN_PX
+    )
+  );
 }
 
 async function injectStyle(page: Page, id: string, css: string): Promise<void> {
@@ -393,10 +405,15 @@ async function applyFallbackZoom(
   height: number,
   targetHeight: number,
   minScalePct: number,
-): Promise<boolean> {
-  const zoom = Math.max(minScalePct / 100, targetHeight / Math.max(height, 1));
+  effectiveMinZoom: number,
+): Promise<{ applied: boolean; success: boolean }> {
+  // The font-size shrink stage may already have reduced text to minScalePct.
+  // Applying another minScalePct zoom on top of it would multiply the two
+  // (e.g. 80% × 80% = 64%), so the zoom floor is what is left of the total
+  // shrink budget. effectiveMinZoom is 1 when text already hit the floor.
+  const zoom = Math.max(effectiveMinZoom, targetHeight / Math.max(height, 1));
   if (zoom >= 1) {
-    return true;
+    return { applied: false, success: height <= targetHeight };
   }
 
   await injectStyle(
@@ -409,7 +426,18 @@ async function applyFallbackZoom(
     `,
   );
   await waitForReflow(page);
-  return (await measureHeight(page)) <= targetHeight;
+  return { applied: true, success: (await measureHeight(page)) <= targetHeight };
+}
+
+/** Remove every style injected by the pagination strategy, restoring the
+ * original layout. Used when a fit attempt fails so the caller never receives
+ * a silently over-shrunk PDF. */
+async function clearInjectedStyles(page: Page, styleId: string): Promise<void> {
+  await page.evaluate((ids) => {
+    for (const id of ids) {
+      document.getElementById(id)?.remove();
+    }
+  }, [styleId, '__fit-one-page-zoom']);
 }
 
 export function resolvePaginationStrategyConfig(
@@ -423,7 +451,9 @@ export function resolvePaginationStrategyConfig(
       scaleStepPct: 5,
       minScalePct: context.profile.fitOnePageMinScale,
       skipBreakRules: context.profile.breakRuleMode === 'preserve',
-      cleanupOnFailure: false,
+      // Restore the unstyled layout when fitting fails. Keeping the shrink
+      // styles produced a tiny-font PDF that the API still returned as 200.
+      cleanupOnFailure: true,
       overflowGuard: null,
       allowZoom: true,
       disabledReason: null,
@@ -668,14 +698,18 @@ export async function applyPaginationStrategy(
 
   if (config.allowZoom) {
     const finalHeight = await measureHeight(page);
-    const zoomSuccess = await applyFallbackZoom(
+    // Total shrink is font-size scale × zoom; keep the product at or above the
+    // configured floor instead of applying the floor twice.
+    const effectiveMinZoom = Math.min(1, config.minScalePct / Math.max(state.scalePct, 1));
+    const zoomResult = await applyFallbackZoom(
       page,
       finalHeight,
       targetPlan.targetHeight,
       config.minScalePct,
+      effectiveMinZoom,
     );
-    const zoomedHeight = await measureHeight(page);
-    if (zoomSuccess) {
+    if (zoomResult.success) {
+      const zoomedHeight = await measureHeight(page);
       await applySinglePageCleanup(page);
       return emitResult(
         options,
@@ -692,7 +726,7 @@ export async function applyPaginationStrategy(
           true,
           false,
           'fit',
-          true,
+          zoomResult.applied,
           true,
         ),
       );
@@ -700,9 +734,7 @@ export async function applyPaginationStrategy(
   }
 
   if (config.cleanupOnFailure) {
-    await page.evaluate((styleId) => {
-      document.getElementById(styleId)?.remove();
-    }, config.styleId);
+    await clearInjectedStyles(page, config.styleId);
   }
 
   const finalHeight = await measureHeight(page);

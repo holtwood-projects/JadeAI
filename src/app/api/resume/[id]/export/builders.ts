@@ -11,6 +11,8 @@ import {
 import { resolvePdfPageMargins } from '@/lib/pdf/page-margins';
 import { mergeThemeConfig } from '@/lib/resume-theme/build-theme-css';
 import { generateQrSvg } from '@/lib/qrcode';
+import type { PdfLayout } from '@/lib/pdf/layout';
+import { CONTINUOUS_LAYOUT_CSS } from '@/lib/pdf/continuous-layout';
 import { buildClassicHtml } from './templates/classic';
 import { buildModernHtml } from './templates/modern';
 import { buildMinimalHtml } from './templates/minimal';
@@ -156,7 +158,7 @@ async function preGenerateQrSvgs(resume: ResumeWithSections): Promise<void> {
 
 export async function generateHtml(
   resume: ResumeWithSections,
-  forPdf = false,
+  forPdf: boolean | PdfLayout = false,
   fontBaseUrl = ''
 ): Promise<string> {
   const safeResume = normalizeWorkExperienceMetadataForDisplay(
@@ -174,7 +176,12 @@ export async function generateHtml(
 
   const pageMargins = resolvePdfPageMargins(layoutProfile, theme.margin);
 
-  const pdfOverrides = forPdf
+  const pdfOverrides = forPdf === 'continuous'
+    ? `${CONTINUOUS_LAYOUT_CSS}
+       ${safeResume.template === 'gradient' ? '.resume-export > div { overflow-x: clip !important; overflow-y: visible !important; }' : ''}
+       /* Fill the subpixel rounding allowance with the template background. */
+       html, body { background: ${bodyBg} !important; }`
+    : forPdf
     ? `/* Page margins and fragmentation */
        @page {        size: A4;
        margin: ${pageMargins.css}; }

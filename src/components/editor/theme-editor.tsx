@@ -170,6 +170,15 @@ const FONT_SIZE_OPTIONS = [
 
 // -- Color Picker Component --
 
+const COMPLETE_HEX = /^#[0-9a-fA-F]{6}$/;
+const ANY_HEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+function normalizeHex(value: string): string {
+  const short = /^#([0-9a-fA-F]{3})$/.exec(value);
+  if (!short) return value.toLowerCase();
+  return `#${short[1].split('').map((char) => `${char}${char}`).join('')}`.toLowerCase();
+}
+
 function ColorPickerField({
   label,
   value,
@@ -179,6 +188,16 @@ function ColorPickerField({
   value: string;
   onChange: (color: string) => void;
 }) {
+  // Keep an unvalidated draft so the user can type a hex value character by
+  // character. Committing only complete 3/6-digit values to the theme meant
+  // every intermediate keystroke was rolled back by the controlled input.
+  const [draft, setDraft] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setDraft(value);
+  }
+
   return (
     <div className="flex items-center justify-between">
       <Label className="text-xs text-zinc-600 dark:text-zinc-400">{label}</Label>
@@ -204,11 +223,28 @@ function ColorPickerField({
               className="h-8 w-full cursor-pointer rounded border-0 p-0"
             />
             <Input
-              value={value}
+              value={draft}
               onChange={(e) => {
-                const v = e.target.value;
-                if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-                  onChange(v);
+                const next = e.target.value;
+                setDraft(next);
+                // Commit only complete 6-digit values while typing; a 3-digit
+                // value is ambiguous until the user finishes (blur/Enter).
+                if (COMPLETE_HEX.test(next)) {
+                  onChange(next.toLowerCase());
+                }
+              }}
+              onBlur={() => {
+                if (ANY_HEX.test(draft)) {
+                  const normalized = normalizeHex(draft);
+                  onChange(normalized);
+                  setDraft(normalized);
+                } else {
+                  setDraft(value);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
                 }
               }}
               placeholder="#000000"
