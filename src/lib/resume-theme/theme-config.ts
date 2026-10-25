@@ -55,6 +55,7 @@ export const TEMPLATE_PRIMARY_DEFAULTS: Partial<Record<Template, string>> = {
   developer: '#e5c07b',
   neon: '#22d3ee',
   japanese: '#a8a29e',
+  medical: '#0d9488',
 };
 
 /** Secondary identity color for multi-color templates. Consumed by heading
