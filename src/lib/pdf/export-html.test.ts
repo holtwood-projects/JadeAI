@@ -122,8 +122,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'gradient-page-margin',
-    expectedLength: 65862,
-    expectedSha256: 'ab80f715c3c882382603baa5b6c934e0f9db3db42dc3d063f673632a00b5e560',
+    expectedLength: 66052,
+    expectedSha256: 'ac22a0530e9ef62e65b4419d29bfc8b5005aa6fac6acd3b1b7d2a7695d25cba3',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',

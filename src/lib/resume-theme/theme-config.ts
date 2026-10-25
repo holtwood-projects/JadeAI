@@ -15,6 +15,21 @@ export const TEMPLATE_PRIMARY_DEFAULTS: Partial<Record<Template, string>> = {
   elegant: '#d4af37',
   modern: '#e94560',
   professional: '#1e3a5f',
+  creative: '#7c3aed',
+  designer: '#ff6b6b',
+  startup: '#6366f1',
+  formal: '#004d40',
+  euro: '#1e40af',
+  clean: '#0066cc',
+  material: '#4f46e5',
+  retro: '#78350f',
+  gradient: '#a855f7',
+  watercolor: '#4c1d95',
+  rose: '#881337',
+  architect: '#1e3a5f',
+  legal: '#1a472a',
+  teacher: '#9a3412',
+  luxe: '#d4af37',
 };
 
 const FONT_SIZES = new Set(['small', 'medium', 'large']);

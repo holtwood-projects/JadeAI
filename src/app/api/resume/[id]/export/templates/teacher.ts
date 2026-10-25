@@ -104,7 +104,7 @@ export function buildTeacherHtml(resume: ResumeWithSections): string {
     <div class="mb-6 flex items-center gap-5">
       ${pi.avatar ? `<img src="${esc(pi.avatar)}" alt="" class="h-18 w-18 shrink-0 rounded-full object-cover" style="border:3px solid ${ACCENT}"/>` : ''}
       <div class="flex-1">
-        <h1 class="text-2xl font-bold" style="color:${PRIMARY}">${esc(pi.fullName || 'Your Name')}</h1>
+        <h1 class="text-2xl font-bold" style="color:var(--theme-primary-color)">${esc(pi.fullName || 'Your Name')}</h1>
         ${pi.jobTitle ? `<p class="mt-1 inline-block rounded-full px-3 py-0.5 text-sm font-medium text-white" style="background-color:${ACCENT}">${esc(pi.jobTitle)}</p>` : ''}
         ${contacts.length || pi.linkedin || pi.github ? `<div class="mt-2 flex flex-wrap gap-3 text-xs" style="color:${MUTED}">${contacts.map(ct => `<span>${esc(ct)}</span>`).join('')}${pi.linkedin ? `<span class="break-all">${esc(pi.linkedin)}</span>` : ''}${pi.github ? `<span class="break-all">${esc(pi.github)}</span>` : ''}</div>` : ''}
       </div>
