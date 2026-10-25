@@ -124,7 +124,7 @@ JadeAI 是一个面向简历编辑、AI 优化和求职准备的全栈应用。�
 - **分享链接**：支持密码保护与访问统计
 - **浏览统计**：追踪分享简历的查看次数
 - **本地 PDF 渲染依赖**：优先使用系统 Chrome / Chromium。生产环境建议设置 `CHROME_PATH` 指向已安装的浏览器；如确实需要运行时下载 bundled Chromium，必须显式设置 `ALLOW_CHROMIUM_DOWNLOAD=true`。
-- **WSL 开发注意**：PATH 自动探测会命中转发到 Windows `chrome.exe` 的 bash 包装脚本（常见于 `~/.local/bin/chromium`），跨边界启动会让 Puppeteer 挂起直到超时。WSL 下必须设置 `CHROME_PATH` 指向 Linux 原生浏览器（如 `chrome-headless-shell`）。
+- **WSL 开发注意**：WSL 下常在 `~/.local/bin` 放置 bash 包装脚本把浏览器命令转发到 Windows `chrome.exe`。此类包装脚本经实测可用于 PDF 导出（Puppeteer 经 WSL interop 直接驱动 Windows Chrome）；若你的环境中浏览器启动阶段挂起，再设置 `CHROME_PATH` 指向 Linux 原生浏览器（如 `chrome-headless-shell`）。
 - **PDF 分页引擎**：`fit-one-page` 与 `prevent-blank-page` 现在共用同一个分页策略入口，并可在 `node --import tsx scripts/benchmark-pdf-layout.ts` 中输出分页 telemetry，便于比较不同渲染引擎与压缩效果。
 
 ### 简历管理

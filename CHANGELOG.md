@@ -22,7 +22,7 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 - 构建链（tsconfig/eslint）排除 gitignored 的 AI 工具目录（`.agents/`、`agent/`、`data/`），本地全量校验不再被这些目录的脚本打断。
 - 同步上游 217 个提交，并入面试官侧招聘模块与 Electron 桌面客户端；随后移除桌面客户端，重新聚焦 Docker Web 部署。
 - README 本土化为纯中文，移除英文版与废弃的 zh-CN README，并补充 OrcaRouter 等 AI 提供商配置说明；整理仓库忽略规则，停止追踪 AI 工具产物。
-- 文档：补充 WSL 开发说明——PATH 自动探测会命中转发到 Windows `chrome.exe` 的包装脚本导致 Puppeteer 挂起，WSL 下应设置 `CHROME_PATH` 指向 Linux 原生浏览器。
+- 文档：补充 WSL 开发说明——`~/.local/bin` 中转发到 Windows `chrome.exe` 的包装脚本经实测可用于 PDF 导出（经 WSL interop 驱动）；若浏览器启动阶段挂起，再设置 `CHROME_PATH` 指向 Linux 原生浏览器。
 
 ### 修复
 
