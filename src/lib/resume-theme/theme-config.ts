@@ -47,6 +47,22 @@ export const TEMPLATE_PRIMARY_DEFAULTS: Partial<Record<Template, string>> = {
   engineer: '#1e293b',
   card: '#18181b',
   zigzag: '#1e293b',
+  // Batch 4: multi-slot templates. primary = dominant heading identity,
+  // accent = secondary identity color (see TEMPLATE_ACCENT_DEFAULTS).
+  'two-column': '#1a1a2e',
+  sidebar: '#1e40af',
+  coder: '#3fb950',
+  developer: '#e5c07b',
+  neon: '#22d3ee',
+  japanese: '#a8a29e',
+};
+
+/** Secondary identity color for multi-color templates. Consumed by heading
+ *  borders (sidebar), secondary headings (coder sidebar, developer name). */
+export const TEMPLATE_ACCENT_DEFAULTS: Partial<Record<Template, string>> = {
+  coder: '#58a6ff',
+  sidebar: '#3b82f6',
+  developer: '#98c379',
 };
 
 const FONT_SIZES = new Set(['small', 'medium', 'large']);
@@ -169,12 +185,14 @@ export function mergeThemeConfig(theme?: ThemeConfigInput | null, template?: str
   }
   const source = (parsed || {}) as ThemeConfigInput;
   // Merge order: global default → per-template default → user input. A stored
-  // themeConfig without an explicit primaryColor keeps the template's designed
-  // heading color; any explicit color (user picker, preset) always wins.
+  // themeConfig without an explicit color keeps the template's designed
+  // identity color; any explicit color (user picker, preset) always wins.
   const templatePrimary = template ? TEMPLATE_PRIMARY_DEFAULTS[template as Template] : undefined;
+  const templateAccent = template ? TEMPLATE_ACCENT_DEFAULTS[template as Template] : undefined;
   return normalizeThemeConfig({
     ...DEFAULT_THEME,
     ...(templatePrimary ? { primaryColor: templatePrimary } : {}),
+    ...(templateAccent ? { accentColor: templateAccent } : {}),
     ...source,
     margin: {
       ...DEFAULT_THEME.margin,

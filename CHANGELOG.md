@@ -41,6 +41,7 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 - 主题色：elegant / modern / professional 的标题改走 `var(--theme-primary-color)`，用户设置的主色首次对这三套模板生效；未设置时通过按模板默认色表 `TEMPLATE_PRIMARY_DEFAULTS` 保持原有外观（金 / 红 / 藏青），主题编辑器的任意改动也不会再把全局默认色误烘焙进这三套模板。
 - 主题色（第二批）：creative、designer、startup、formal、euro、clean、material、retro、gradient、watercolor、rose、architect、legal 十三套全量迁移，teacher（仅姓名）、luxe（仅分节标题）部分迁移；未设置主题色时外观不变。药丸式标题（teacher/medical）与深色背景模板（neon 等）因对比度风险暂缓，见 `docs/research/theme-color-coverage.md`。
 - 主题色（第三批）：executive、timeline、nordic、corporate、consultant、finance、metro、blocks、magazine、artistic、swiss、berlin、scientist、engineer、card、zigzag 十六套中性深色标题模板全量迁移；至此 50 套中 39 套标题跟随主题色（31 套迁移 + 8 套原生跟随），按模板默认色表收录 34 条。发现 japanese 存在预览与导出的色板漂移（分节标题两侧颜色不同），暂缓迁移待对齐，详见矩阵文档。
+- 主题色（第四批·契约扩展收官）：激活 `--theme-accent-color` 按模板默认色（coder/sidebar/developer）；新增深色面 `safe-on-dark` 变体（过暗主色自动提亮至可读）与 `alpha` 透明度变体（辉光/渐变线跟随主色）。迁移 two-column、sidebar、coder、developer、neon（含标题辉光）、japanese（先按导出侧对齐预览的色板与字号漂移——该漂移为上游固有）。mosaic（循环色板）与 teacher/medical（药丸标题）定为设计性不迁。50 套中 43 套标题跟随主题色，其余 7 套均为文档化决策，见 `docs/research/theme-color-coverage.md`。
 - 数据完整性：板块内容校验失败时只丢弃非法条目并保留其余条目，不再整段清空；匿名会话 cookie 与 `x-fingerprint` 不一致时以签名 cookie 为准，不再永久 401。
 - 字体：导出 HTML/PDF 内嵌 Inter 可变字体；DOCX 不再写入终端未安装的内置字体，回退 Microsoft YaHei；衬线/等宽字体栈把通用族放在内置中文字体之前，避免 PDF 中 Georgia/Courier 被替换。
 - 主题：读取时解码旧版 JSON 字符串/字符键 themeConfig；颜色输入框支持逐字输入 6 位色值。

@@ -27,6 +27,45 @@ function isDark(hex: string): boolean {
   return 0.299 * r + 0.587 * g + 0.114 * b < 0.4;
 }
 
+function relativeLuminance(hex: string): number {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substring(0, 2), 16) / 255;
+  const g = parseInt(c.substring(2, 4), 16) / 255;
+  const b = parseInt(c.substring(4, 6), 16) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function mixWithWhite(hex: string, ratio: number): string {
+  const c = hex.replace('#', '');
+  const channel = (start: number) => {
+    const v = parseInt(c.substring(start, start + 2), 16);
+    return Math.round(v + (255 - v) * ratio)
+      .toString(16)
+      .padStart(2, '0');
+  };
+  return `#${channel(0)}${channel(2)}${channel(4)}`;
+}
+
+/**
+ * Heading color for dark template surfaces (neon/coder sidebars): the user's
+ * color as-is when already light enough, otherwise lightened toward white
+ * until readable (≥ 0.45 relative luminance ≈ 8:1 on #0d1117).
+ */
+export function safeOnDarkColor(hex: string): string {
+  let color = hex.replace('#', '').length === 6 ? hex : `#${hex}`;
+  for (let i = 0; i < 5 && relativeLuminance(color) < 0.45; i++) {
+    color = mixWithWhite(color, 0.2);
+  }
+  return color;
+}
+
+/** #rrggbb + alpha suffix, e.g. withAlpha('#22d3ee', '40') → '#22d3ee40'. */
+function withAlpha(hex: string, alpha: string): string {
+  return `${hex}${alpha}`;
+}
+
+const ALPHA_STEPS = ['60', '40', '20', '08', '05'];
+
 export function buildThemeCss({
   selector,
   template,
@@ -44,6 +83,10 @@ export function buildThemeCss({
        --theme-font-family: ${safeTheme.fontFamily};
        --theme-primary-color: ${safeTheme.primaryColor};
        --theme-accent-color: ${safeTheme.accentColor};
+       --theme-primary-safe-on-dark: ${safeOnDarkColor(safeTheme.primaryColor)};
+       --theme-accent-safe-on-dark: ${safeOnDarkColor(safeTheme.accentColor)};
+${ALPHA_STEPS.map((a) => `       --theme-primary-alpha-${a}: ${withAlpha(safeTheme.primaryColor, a)};`).join('\n')}
+${ALPHA_STEPS.map((a) => `       --theme-accent-alpha-${a}: ${withAlpha(safeTheme.accentColor, a)};`).join('\n')}
        --base-body-size: ${fs.body};
        --base-h1-size: ${fs.h1};
        --base-h2-size: ${fs.h2};
