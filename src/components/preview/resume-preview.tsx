@@ -1,132 +1,85 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useId } from 'react';
 import type { Resume } from '@/types/resume';
 import { normalizeLanguageDescriptionsForCompactTemplates } from '@/lib/language-description';
 import { buildThemeCss, mergeThemeConfig } from '@/lib/resume-theme/build-theme-css';
 import { normalizeWorkExperienceMetadataForDisplay } from '@/lib/work-experience-meta';
-import { ClassicTemplate } from './templates/classic';
-import { ModernTemplate } from './templates/modern';
-import { MinimalTemplate } from './templates/minimal';
-import { ProfessionalTemplate } from './templates/professional';
-import { TwoColumnTemplate } from './templates/two-column';
-import { CreativeTemplate } from './templates/creative';
-import { AtsTemplate } from './templates/ats';
-import { AcademicTemplate } from './templates/academic';
-import { ElegantTemplate } from './templates/elegant';
-import { ExecutiveTemplate } from './templates/executive';
-import { DeveloperTemplate } from './templates/developer';
-import { DesignerTemplate } from './templates/designer';
-import { StartupTemplate } from './templates/startup';
-import { FormalTemplate } from './templates/formal';
-import { InfographicTemplate } from './templates/infographic';
-import { CompactTemplate } from './templates/compact';
-import { EuroTemplate } from './templates/euro';
-import { CleanTemplate } from './templates/clean';
-import { BoldTemplate } from './templates/bold';
-import { TimelineTemplate } from './templates/timeline';
 // Batch 1: Industry/Professional
-import { NordicTemplate } from './templates/nordic';
-import { CorporateTemplate } from './templates/corporate';
-import { ConsultantTemplate } from './templates/consultant';
-import { FinanceTemplate } from './templates/finance';
-import { MedicalTemplate } from './templates/medical';
 // Batch 2: Modern/Tech
-import { GradientTemplate } from './templates/gradient';
-import { MetroTemplate } from './templates/metro';
-import { MaterialTemplate } from './templates/material';
-import { CoderTemplate } from './templates/coder';
-import { BlocksTemplate } from './templates/blocks';
 // Batch 3: Creative/Artistic
-import { MagazineTemplate } from './templates/magazine';
-import { ArtisticTemplate } from './templates/artistic';
-import { RetroTemplate } from './templates/retro';
-import { NeonTemplate } from './templates/neon';
-import { WatercolorTemplate } from './templates/watercolor';
 // Batch 4: Style/Culture
-import { SwissTemplate } from './templates/swiss';
-import { JapaneseTemplate } from './templates/japanese';
-import { BerlinTemplate } from './templates/berlin';
-import { LuxeTemplate } from './templates/luxe';
-import { RoseTemplate } from './templates/rose';
 // Batch 5: Specialized
-import { ArchitectTemplate } from './templates/architect';
-import { LegalTemplate } from './templates/legal';
-import { TeacherTemplate } from './templates/teacher';
-import { ScientistTemplate } from './templates/scientist';
-import { EngineerTemplate } from './templates/engineer';
 // Batch 6: Layout Variants
-import { SidebarTemplate } from './templates/sidebar';
-import { CardTemplate } from './templates/card';
-import { ZigzagTemplate } from './templates/zigzag';
-import { RibbonTemplate } from './templates/ribbon';
-import { MosaicTemplate } from './templates/mosaic';
 
 interface ResumePreviewProps {
   resume: Resume;
 }
 
+// All 50 templates are lazy (per-template chunks; SSR still renders through
+// next/dynamic). Editor/preview/share pages stop shipping the full template set.
 const templateMap: Record<string, React.ComponentType<{ resume: Resume }>> = {
-  classic: ClassicTemplate,
-  modern: ModernTemplate,
-  minimal: MinimalTemplate,
-  professional: ProfessionalTemplate,
-  'two-column': TwoColumnTemplate,
-  creative: CreativeTemplate,
-  ats: AtsTemplate,
-  academic: AcademicTemplate,
-  elegant: ElegantTemplate,
-  executive: ExecutiveTemplate,
-  developer: DeveloperTemplate,
-  designer: DesignerTemplate,
-  startup: StartupTemplate,
-  formal: FormalTemplate,
-  infographic: InfographicTemplate,
-  compact: CompactTemplate,
-  euro: EuroTemplate,
-  clean: CleanTemplate,
-  bold: BoldTemplate,
-  timeline: TimelineTemplate,
+  classic: dynamic(() => import('./templates/classic').then((m) => m.ClassicTemplate)),
+  modern: dynamic(() => import('./templates/modern').then((m) => m.ModernTemplate)),
+  minimal: dynamic(() => import('./templates/minimal').then((m) => m.MinimalTemplate)),
+  professional: dynamic(() => import('./templates/professional').then((m) => m.ProfessionalTemplate)),
+  'two-column': dynamic(() => import('./templates/two-column').then((m) => m.TwoColumnTemplate)),
+  creative: dynamic(() => import('./templates/creative').then((m) => m.CreativeTemplate)),
+  ats: dynamic(() => import('./templates/ats').then((m) => m.AtsTemplate)),
+  academic: dynamic(() => import('./templates/academic').then((m) => m.AcademicTemplate)),
+  elegant: dynamic(() => import('./templates/elegant').then((m) => m.ElegantTemplate)),
+  executive: dynamic(() => import('./templates/executive').then((m) => m.ExecutiveTemplate)),
+  developer: dynamic(() => import('./templates/developer').then((m) => m.DeveloperTemplate)),
+  designer: dynamic(() => import('./templates/designer').then((m) => m.DesignerTemplate)),
+  startup: dynamic(() => import('./templates/startup').then((m) => m.StartupTemplate)),
+  formal: dynamic(() => import('./templates/formal').then((m) => m.FormalTemplate)),
+  infographic: dynamic(() => import('./templates/infographic').then((m) => m.InfographicTemplate)),
+  compact: dynamic(() => import('./templates/compact').then((m) => m.CompactTemplate)),
+  euro: dynamic(() => import('./templates/euro').then((m) => m.EuroTemplate)),
+  clean: dynamic(() => import('./templates/clean').then((m) => m.CleanTemplate)),
+  bold: dynamic(() => import('./templates/bold').then((m) => m.BoldTemplate)),
+  timeline: dynamic(() => import('./templates/timeline').then((m) => m.TimelineTemplate)),
   // Batch 1
-  nordic: NordicTemplate,
-  corporate: CorporateTemplate,
-  consultant: ConsultantTemplate,
-  finance: FinanceTemplate,
-  medical: MedicalTemplate,
+  nordic: dynamic(() => import('./templates/nordic').then((m) => m.NordicTemplate)),
+  corporate: dynamic(() => import('./templates/corporate').then((m) => m.CorporateTemplate)),
+  consultant: dynamic(() => import('./templates/consultant').then((m) => m.ConsultantTemplate)),
+  finance: dynamic(() => import('./templates/finance').then((m) => m.FinanceTemplate)),
+  medical: dynamic(() => import('./templates/medical').then((m) => m.MedicalTemplate)),
   // Batch 2
-  gradient: GradientTemplate,
-  metro: MetroTemplate,
-  material: MaterialTemplate,
-  coder: CoderTemplate,
-  blocks: BlocksTemplate,
+  gradient: dynamic(() => import('./templates/gradient').then((m) => m.GradientTemplate)),
+  metro: dynamic(() => import('./templates/metro').then((m) => m.MetroTemplate)),
+  material: dynamic(() => import('./templates/material').then((m) => m.MaterialTemplate)),
+  coder: dynamic(() => import('./templates/coder').then((m) => m.CoderTemplate)),
+  blocks: dynamic(() => import('./templates/blocks').then((m) => m.BlocksTemplate)),
   // Batch 3
-  magazine: MagazineTemplate,
-  artistic: ArtisticTemplate,
-  retro: RetroTemplate,
-  neon: NeonTemplate,
-  watercolor: WatercolorTemplate,
+  magazine: dynamic(() => import('./templates/magazine').then((m) => m.MagazineTemplate)),
+  artistic: dynamic(() => import('./templates/artistic').then((m) => m.ArtisticTemplate)),
+  retro: dynamic(() => import('./templates/retro').then((m) => m.RetroTemplate)),
+  neon: dynamic(() => import('./templates/neon').then((m) => m.NeonTemplate)),
+  watercolor: dynamic(() => import('./templates/watercolor').then((m) => m.WatercolorTemplate)),
   // Batch 4
-  swiss: SwissTemplate,
-  japanese: JapaneseTemplate,
-  berlin: BerlinTemplate,
-  luxe: LuxeTemplate,
-  rose: RoseTemplate,
+  swiss: dynamic(() => import('./templates/swiss').then((m) => m.SwissTemplate)),
+  japanese: dynamic(() => import('./templates/japanese').then((m) => m.JapaneseTemplate)),
+  berlin: dynamic(() => import('./templates/berlin').then((m) => m.BerlinTemplate)),
+  luxe: dynamic(() => import('./templates/luxe').then((m) => m.LuxeTemplate)),
+  rose: dynamic(() => import('./templates/rose').then((m) => m.RoseTemplate)),
   // Batch 5
-  architect: ArchitectTemplate,
-  legal: LegalTemplate,
-  teacher: TeacherTemplate,
-  scientist: ScientistTemplate,
-  engineer: EngineerTemplate,
+  architect: dynamic(() => import('./templates/architect').then((m) => m.ArchitectTemplate)),
+  legal: dynamic(() => import('./templates/legal').then((m) => m.LegalTemplate)),
+  teacher: dynamic(() => import('./templates/teacher').then((m) => m.TeacherTemplate)),
+  scientist: dynamic(() => import('./templates/scientist').then((m) => m.ScientistTemplate)),
+  engineer: dynamic(() => import('./templates/engineer').then((m) => m.EngineerTemplate)),
   // Batch 6
-  sidebar: SidebarTemplate,
-  card: CardTemplate,
-  zigzag: ZigzagTemplate,
-  ribbon: RibbonTemplate,
-  mosaic: MosaicTemplate,
+  sidebar: dynamic(() => import('./templates/sidebar').then((m) => m.SidebarTemplate)),
+  card: dynamic(() => import('./templates/card').then((m) => m.CardTemplate)),
+  zigzag: dynamic(() => import('./templates/zigzag').then((m) => m.ZigzagTemplate)),
+  ribbon: dynamic(() => import('./templates/ribbon').then((m) => m.RibbonTemplate)),
+  mosaic: dynamic(() => import('./templates/mosaic').then((m) => m.MosaicTemplate)),
 };
 
 export function ResumePreview({ resume }: ResumePreviewProps) {
-  const Template = templateMap[resume.template] || ClassicTemplate;
+  const Template = templateMap[resume.template] || templateMap.classic;
   const scopeId = useId();
   const theme = mergeThemeConfig(resume.themeConfig);
 
