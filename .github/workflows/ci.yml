@@ -53,6 +53,22 @@ jobs:
           DB_TYPE: sqlite
           SQLITE_PATH: ":memory:"
 
+      - name: First-load JS budget
+        env:
+          DB_TYPE: sqlite
+          SQLITE_PATH: "/tmp/jade-budget.db"
+        run: |
+          pnpm start &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3000/api/health >/dev/null && break
+            sleep 1
+          done
+          node --import tsx scripts/measure-first-load-js.ts --check
+          STATUS=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $STATUS
+
   # The Docker image is the primary delivery artifact for this fork. Building
   # it only on main keeps PR feedback fast while still catching Dockerfile,
   # standalone-output and startup regressions before a release.
