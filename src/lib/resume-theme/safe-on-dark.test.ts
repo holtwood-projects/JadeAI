@@ -1,4 +1,4 @@
-import { buildThemeCss, mergeThemeConfig, safeOnDarkColor } from '@/lib/resume-theme/build-theme-css';
+import { buildThemeCss, contrastTextColor, mergeThemeConfig, safeOnDarkColor } from '@/lib/resume-theme/build-theme-css';
 import { test, expect } from 'vitest';
 
 test('safeOnDarkColor keeps light colors and lightens dark ones', () => {
@@ -13,8 +13,17 @@ test('safeOnDarkColor keeps light colors and lightens dark ones', () => {
 });
 
 test('buildThemeCss emits safe-on-dark and alpha variants', () => {
-  const css = buildThemeCss({ selector: '.t', template: 'neon', theme: mergeThemeConfig({ primaryColor: '#22d3ee', accentColor: '#3b82f6' }), templateSafeVariables: true });
+  const css = buildThemeCss({ selector: '.t', template: 'neon', theme: mergeThemeConfig({ primaryColor: '#22d3ee', accentColor: '#3b82f6' }) });
   expect(css).toContain('--theme-primary-safe-on-dark: #22d3ee');
   expect(css).toContain('--theme-primary-alpha-60: #22d3ee60');
   expect(css).toContain('--theme-accent-alpha-40: #3b82f640');
+});
+
+test('contrastTextColor flips between white and dark by fill luminance', () => {
+  // teacher/medical 默认药丸底色均为深色 → 白字（默认外观不变）
+  expect(contrastTextColor('#9a3412')).toBe('#ffffff');
+  expect(contrastTextColor('#0d9488')).toBe('#ffffff');
+  // 浅色底自动切深字，避免白字浅底不可读
+  expect(contrastTextColor('#ffff00')).toBe('#111827');
+  expect(contrastTextColor('#fef3c7')).toBe('#111827');
 });

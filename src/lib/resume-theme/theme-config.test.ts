@@ -67,12 +67,12 @@ test('buildThemeCss only emits normalized theme values', () => {
     },
   });
 
-  expect(css).toMatch(/color: #1a1a1a !important/);
-  expect(css).toMatch(/border-color: #ddeeff !important/);
+  expect(css).toMatch(/--theme-primary-color: #1a1a1a/);
+  expect(css).toMatch(/--theme-accent-color: #ddeeff/);
   expect(css).not.toMatch(/color:red/);
-  expect(css).toMatch(/font-family: Inter, sans-serif, "Noto Sans SC" !important/);
-  expect(css).toMatch(/padding-top: 0px !important/);
-  expect(css).toMatch(/padding-right: 60px !important/);
+  expect(css).toMatch(/--theme-font-family: Inter, sans-serif, "Noto Sans SC"/);
+  expect(css).toMatch(/--base-margin-top: 0px/);
+  expect(css).toMatch(/--base-margin-right: 60px/);
   expect(css).toMatch(/--base-section-spacing: 64px/);
 });
 

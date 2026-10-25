@@ -95,3 +95,23 @@ describe('第四批：双插槽与深色面模板', () => {
     expect(sb).toContain('--theme-accent-color: #3b82f6');
   });
 });
+
+describe('药丸式标题主题化（teacher/medical）', () => {
+  it('默认底色不变且文字对比度自动选择', async () => {
+    const teacher = await generateHtml(pdfResumeFixture('teacher'));
+    expect(teacher).toContain('--theme-primary-color: #9a3412');
+    expect(teacher).toContain('--theme-primary-contrast-text: #ffffff');
+    expect(teacher).toContain('background-color:var(--theme-primary-color)');
+    const medical = await generateHtml(pdfResumeFixture('medical'));
+    expect(medical).toContain('--theme-primary-color: #0d9488');
+    expect(medical).toContain('--theme-primary-contrast-text: #ffffff');
+  });
+
+  it('浅色主色时药丸文字自动切深色', async () => {
+    const html = await generateHtml({
+      ...pdfResumeFixture('medical'),
+      themeConfig: { primaryColor: '#ffff00' },
+    });
+    expect(html).toContain('--theme-primary-contrast-text: #111827');
+  });
+});
