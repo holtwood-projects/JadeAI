@@ -63,3 +63,18 @@
 - **medical 姓名保留内联 TEAL_800**（深青姓名调，同 elegant/luxe/japanese 的中性色保留模式）；teacher 药丸迁移后标题全量跟随。
 - 矩阵 7→6，剩余全部为文档化设计决策（elegant/luxe/japanese 姓名中性色、coder 主栏中性标题、medical 姓名深青、mosaic 循环色板）。
 - 同批清理：buildThemeCss 遗留死分支（templateSafeVariables=false 路径，唯一消费者是断言其行为的测试，已改写为现行分支断言）；isDark 改为复用 relativeLuminance。
+
+## 垫片规则消费者分析（2026-10-25）
+
+对 buildThemeCss 剩余垫片选择器做了 50 套模板导出 HTML 的结构命中分析（栈式解析器追踪祖先背景）：
+
+| 规则 | 命中 | 结论 |
+| --- | --- | --- |
+| `:where(h1-3):not([style*="color"])` 主色规则 | 48 | 承重（原生跟随模板 + 背景头部 h1） |
+| `:where(h2[border-b])` accent 边框 | 23（8 套） | 承重 |
+| `[style*=background][style*=#]` 深底白字 | 20（15 套） | 承重 |
+| `[style*=background][style*=rgb]` | **0（双侧）** | **死规则，已删除** |
+| `[style*=background][style*=linear-gradient]` | 9（8 套） | 承重 |
+| `.bg-black` | 1（bold） | 承重 |
+
+结论：垫片并非「迁移后可整体拆除」——它仍为背景头部模板的深底白字行为服务；仅 rgb 变体确认死亡并移除。后续若背景头部模板的 h1 显式接入 `safe-on-dark`，对应规则才可继续退役。
