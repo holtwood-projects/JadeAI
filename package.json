@@ -1,6 +1,6 @@
 {
   "name": "jadeai",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "packageManager": "pnpm@11.0.9",
   "homepage": "https://holtwood-projects.github.io/JadeAI/",
