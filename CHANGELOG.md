@@ -18,13 +18,11 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 - 匿名模式下 AI 与简历相关接口的限流改为按客户端地址分桶，不再信任可伪造的 `x-fingerprint`；反向代理部署需设置 `TRUST_PROXY=true` 才能按真实 IP 分桶。
 - AI 模型切换改为每次发送时读取最新选择，不再受会话 transport 缓存影响。
 - 官网落地页导航新增「招聘」入口（桌面端与移动端），同步上游并补齐中英文案。
-
-### 变更
-
 - 同步上游至 2026-09-03：仅采纳 landing 招聘导航入口，不采纳 LaunchAI 推广徽章与 `.gitignore` 等价改写；新增 fork 维护手册 `docs/fork-notes.md` 与每周上游同步提醒 workflow。
 - 构建链（tsconfig/eslint）排除 gitignored 的 AI 工具目录（`.agents/`、`agent/`、`data/`），本地全量校验不再被这些目录的脚本打断。
 - 同步上游 217 个提交，并入面试官侧招聘模块与 Electron 桌面客户端；随后移除桌面客户端，重新聚焦 Docker Web 部署。
 - README 本土化为纯中文，移除英文版与废弃的 zh-CN README，并补充 OrcaRouter 等 AI 提供商配置说明；整理仓库忽略规则，停止追踪 AI 工具产物。
+- 文档：补充 WSL 开发说明——PATH 自动探测会命中转发到 Windows `chrome.exe` 的包装脚本导致 Puppeteer 挂起，WSL 下应设置 `CHROME_PATH` 指向 Linux 原生浏览器。
 
 ### 修复
 
@@ -37,6 +35,7 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 - 数据库：SQLite 迁移遇到 `already exists` 时校验迁移账本是否推进到最新条目，否则拒绝以残缺 schema 启动；示例数据填充失败不再让 `dbReady` 永久 reject。
 - 迁移：recruit 迁移改为幂等 DDL，兼容「上游血统」「merge 后已有表」「全新库」三种升级路径；PostgreSQL 外键迁移时间戳与幂等性修正。
 - 保存：修复并发保存被 `isSaving` 早退丢弃、`flushSave` 提前放行、卸载时在飞请求失去串行化；AI 对话与重试统一走 `flushSave`。
+- 技能板块：自动保存不再清除正在编辑的空白技能行（skills 数组中的空字符串条目），修复新增技能行在保存后消失的问题。
 - 数据完整性：板块内容校验失败时只丢弃非法条目并保留其余条目，不再整段清空；匿名会话 cookie 与 `x-fingerprint` 不一致时以签名 cookie 为准，不再永久 401。
 - 字体：导出 HTML/PDF 内嵌 Inter 可变字体；DOCX 不再写入终端未安装的内置字体，回退 Microsoft YaHei；衬线/等宽字体栈把通用族放在内置中文字体之前，避免 PDF 中 Georgia/Courier 被替换。
 - 主题：读取时解码旧版 JSON 字符串/字符键 themeConfig；颜色输入框支持逐字输入 6 位色值。
