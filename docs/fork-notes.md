@@ -8,7 +8,7 @@
 - 最近同步：2026-10-04 → 上游 `aca6fbb`（本仓库 merge `b7402d5`）。此后上游 main 无新提交。
 - 2026-10-21 选择性移植上游 PR #101（`feat/pdf-continuous`）：采纳连续长页、快照 POST 导出、渲染超时/取消/并发保护；**未合并**该分支，因为它与 fork 的 `pagination-strategy.ts` 是两套 PDF 管线，直接 merge 会冲突 12 个文件并造成静默功能倒退。
 - 截至 2026-10-04 同步（v0.7.0）：fork 领先上游约百个提交（精确值用 `git rev-list --count upstream/main..main` 查询）。
-- 版本约定：fork 与上游**共享版本号**（当前 v0.7.0），tag 指向上游对应版本的基线提交（origin 上亦如此），fork 自身增量只在 main 上；仓库不创建 GitHub Release，Docker 镜像从 main HEAD 构建。
+- 版本约定（**2026-10-25 起变更**）：v0.8.0 之前 fork 与上游共享版本号、tag 指向上游基线、不创建 GitHub Release。自 v0.8.0 起 fork 领先幅度已形成完整的自有功能面（模板主题化体系、性能优化等 30+ 提交），改为**独立发版**：版本号仍以 `package.json` 为唯一来源（对齐 AGENTS.md），`v<version>` tag 打在 fork 自身提交上，创建 GitHub Release；Docker 镜像 tag 同步（见下）。若未来上游发布同名版本号，fork 的 tag 优先保留、上游基线改用 `upstream/v<version>` 标注。
 - 定位差异：fork 删除 Electron 桌面客户端及 `desktop-release.yml`，新增/重写 Docker 构建运行链、GitHub Pages 站点、CI 工作流、PDF 分页策略与主题系统等。
 
 ## 2. 自有模块（零冲突区）
