@@ -32,8 +32,8 @@ const REQUIRED_PDF_PAGINATION_SNIPPETS = [
 const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   {
     fixtureName: 'modern-long-content',
-    expectedLength: 58236,
-    expectedSha256: '9d9164393232afc7d11364010b488cb476342f6c77b332a10d19b9b5672da3f9',
+    expectedLength: 57987,
+    expectedSha256: '9d5f1b9a9c9ae227c5dbf3d6b30d1fd3d163efd747c23d023cef0e4b2b008bcd',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',
@@ -51,8 +51,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'sidebar-long-content',
-    expectedLength: 65448,
-    expectedSha256: '060ee67d2abcbd81e7595f7e6bc623bc80c637352145dcb77c813d3c35cce037',
+    expectedLength: 65199,
+    expectedSha256: '002aa5553a0df6172f000ca44308ef2b5559a369e3fe3c73c182e471eb67cb24',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'sidebar-dark',
@@ -70,8 +70,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'compact-dense',
-    expectedLength: 58161,
-    expectedSha256: 'd20fdfe39fdbc3f5192dc93226503fbb822ba90bb5e9585b3511b423342da099',
+    expectedLength: 57912,
+    expectedSha256: 'cff92d2ccc51a688170a357bfb806f1996b604057219938617a44fd8e5bdc8ea',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',
@@ -104,8 +104,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'swiss-page-gap',
-    expectedLength: 64732,
-    expectedSha256: 'bb18499284aeee12e50fe7dae55c37444bf74bd4a0f9fdb86d473b10f7fd473b',
+    expectedLength: 64483,
+    expectedSha256: '86d6422c325fe7b39f1720ac4077d616bdb462b81f044dcb739fcdfd31d6d81f',
     dataAttributes: {
       'data-page-mode': 'standard',
       'data-surface-mode': 'light',
@@ -122,8 +122,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'gradient-page-margin',
-    expectedLength: 66671,
-    expectedSha256: '15589de5b07765f280f38b72576ac2f3b3035c8fc5cdb4e0ffe39ab1b2e4112c',
+    expectedLength: 66422,
+    expectedSha256: '37f63510bdb80c9e8c83cbe537d9cf655e585c94b4aefdead7ae90cb832c6c82',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',
