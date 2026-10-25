@@ -127,3 +127,7 @@ grep -ri launchai src/ messages/ README.md
 提醒 issue 依赖仓库的 Issues 功能：holtwood-projects/JadeAI 已于 2026-10-04 开启（GitHub fork 默认关闭 Issues；其他仓库复用本 workflow 前需在 Settings → General → Features 勾选 Issues，否则 `gh issue create` 会失败）。提醒正文由 `printf` 参数生成，上游提交信息即使含反引号等字符也只会按字面渲染，无命令注入风险。
 
 **启用前提（重要）**：GitHub fork 上定时 workflow **默认禁用**——推送后需在 Actions 页找到 Upstream Sync Check 手动 Enable；另外仓库 60 天无活动时 GitHub 会自动停用定时任务，届时同样在 Actions 页重新启用。
+
+## 9. gh CLI 默认仓库（2026-10-25）
+
+本仓库是 fork，同时配置 origin（holtwood-projects/JadeAI）与 upstream（LingyiChen-AI/JadeAI）两个 remote。gh CLI 对 fork 仓库**默认解析到 upstream**，导致 `gh run view/watch`、`gh issue` 等命令不带 `-R` 时 404。已用 `gh repo set-default holtwood-projects/JadeAI` 持久化默认仓库（配置存于本机 `~/.config/gh/config.yml` 的仓库级 `[repo]` 段，不随仓库走）——**新环境克隆后需重跑一次该命令**。
