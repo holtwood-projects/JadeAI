@@ -30,6 +30,23 @@ export const TEMPLATE_PRIMARY_DEFAULTS: Partial<Record<Template, string>> = {
   legal: '#1a472a',
   teacher: '#9a3412',
   luxe: '#d4af37',
+  // Batch 3: neutral-dark heading templates (identity = their exact text color).
+  executive: '#2d3436',
+  timeline: '#475569',
+  nordic: '#64748b',
+  corporate: '#0f172a',
+  consultant: '#374151',
+  finance: '#1e293b',
+  metro: '#1e293b',
+  blocks: '#37352f',
+  magazine: '#1a1a1a',
+  artistic: '#1e1b4b',
+  swiss: '#18181b',
+  berlin: '#18181b',
+  scientist: '#0f172a',
+  engineer: '#1e293b',
+  card: '#18181b',
+  zigzag: '#1e293b',
 };
 
 const FONT_SIZES = new Set(['small', 'medium', 'large']);
