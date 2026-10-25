@@ -10,7 +10,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const BASE = process.argv[2] || 'http://127.0.0.1:3000';
+const BASE = process.argv.find((arg) => arg.startsWith('http://') || arg.startsWith('https://')) || 'http://127.0.0.1:3000';
 const FINGERPRINT = `first-load-measure-${process.pid}`;
 
 async function api(path: string, init?: RequestInit): Promise<any> {
@@ -37,6 +37,7 @@ function measurePage(html: string): { scripts: number; bytes: number } {
 }
 
 async function main() {
+  const check = process.argv.includes('--check');
   const health = await fetch(BASE + '/api/health');
   if (!health.ok) throw new Error('server not running');
 
@@ -58,11 +59,27 @@ async function main() {
 
   console.log(`base: ${BASE}\n`);
   console.log('页面'.padEnd(28), '脚本数', '首屏 JS');
+  // --check 模式的首屏 JS 预算（KB）。基线（2026-10-25，模板按需 chunk 后）：
+  // 模板库 947 / 编辑器 1870 / 落地页 911 / 分享页 ≈ 编辑器量级。预留 ~15-20% 余量。
+  const BUDGETS: Array<[RegExp, number]> = [
+    [/模板库/, 1150],
+    [/编辑器|分享页/, 2100],
+    [/落地页/, 1100],
+  ];
+  let failed = false;
   for (const [label, path] of pages) {
     const res = await fetch(BASE + path, { headers: { 'x-fingerprint': FINGERPRINT } });
     const html = await res.text();
     const { scripts, bytes } = measurePage(html);
-    console.log(label.padEnd(28), String(scripts).padStart(4), `${(bytes / 1024).toFixed(0)} KB`.padStart(10));
+    const kb = Math.round(bytes / 1024);
+    const budget = BUDGETS.find(([re]) => re.test(label))?.[1];
+    const mark = check && budget ? (kb > budget ? `  ✗ 超预算 ${budget} KB` : `  ✓ ≤${budget}KB`) : '';
+    if (check && budget && kb > budget) failed = true;
+    console.log(label.padEnd(28), String(scripts).padStart(4), `${kb} KB`.padStart(10), mark);
+  }
+  if (failed) {
+    console.error('\n首屏 JS 超出预算：请检查是否引入了全量模板导入或大型依赖。');
+    process.exit(1);
   }
 }
 
