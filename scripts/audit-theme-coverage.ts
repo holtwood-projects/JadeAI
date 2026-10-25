@@ -4,7 +4,8 @@
  * 判定依据（与 buildThemeCss 的导出垫片行为一一对应）：
  * - 标题无内联 color → 主题规则特异性 (0,2,0) 压过工具类 (0,1,0) 且
  *   后置，主题色生效。
- * - 标题内联 color:var(--theme-primary-color) → 显式接线，主题色生效。
+ * - 标题内联 color:var(--theme-primary|accent…)（含 -safe-on-dark 变体）
+ *   → 显式接线，主题色生效。
  * - 标题内联字面色（hex/rgb 等）→ 被 `:not([style*="color"])` 排除，
  *   主题色不生效（固定为模板自带色）。
  *
@@ -17,7 +18,7 @@ import { pdfResumeFixture } from '@/lib/pdf/resume-pdf.fixtures';
 
 const HEADING_RE = /<h([1-3])[^>]*>/g;
 const STYLE_COLOR_RE = /style="[^"]*color\s*:/i;
-const THEME_VAR_RE = /color\s*:\s*var\(--theme-primary-color\)/i;
+const THEME_VAR_RE = /color\s*:\s*var\(--theme-(primary|accent)(-color|-safe-on-dark)?\)/i;
 
 interface Row {
   template: string;

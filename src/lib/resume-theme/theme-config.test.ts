@@ -86,3 +86,12 @@ test('per-template primary defaults fill in only when the user set no color', ()
   expect(mergeThemeConfig(null, 'classic').primaryColor).toBe(DEFAULT_THEME.primaryColor);
   expect(mergeThemeConfig(null).primaryColor).toBe(DEFAULT_THEME.primaryColor);
 });
+
+test('per-template accent defaults fill in for multi-color templates', () => {
+  expect(mergeThemeConfig(null, 'coder').accentColor).toBe('#58a6ff');
+  expect(mergeThemeConfig(null, 'sidebar').accentColor).toBe('#3b82f6');
+  expect(mergeThemeConfig(null, 'developer').accentColor).toBe('#98c379');
+  // Explicit accent wins; templates without an accent default keep global.
+  expect(mergeThemeConfig({ accentColor: '#00ff00' }, 'coder').accentColor).toBe('#00ff00');
+  expect(mergeThemeConfig(null, 'classic').accentColor).toBe(DEFAULT_THEME.accentColor);
+});

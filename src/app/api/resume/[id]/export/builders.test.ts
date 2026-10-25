@@ -49,3 +49,49 @@ describe('按模板默认主题色（elegant/modern/professional 首批迁移）
     expect(html).not.toContain('--theme-primary-color: #d4af37');
   });
 });
+
+describe('第四批：双插槽与深色面模板', () => {
+  it('多色模板注入主/辅双默认色', async () => {
+    const coder = await generateHtml(pdfResumeFixture('coder'));
+    expect(coder).toContain('--theme-primary-color: #3fb950');
+    expect(coder).toContain('--theme-accent-color: #58a6ff');
+    const developer = await generateHtml(pdfResumeFixture('developer'));
+    expect(developer).toContain('--theme-primary-color: #e5c07b');
+    expect(developer).toContain('--theme-accent-color: #98c379');
+  });
+
+  it('深色面模板使用 safe-on-dark 与 alpha 变体', async () => {
+    const neon = await generateHtml(pdfResumeFixture('neon'));
+    expect(neon).toContain('--theme-primary-safe-on-dark: #22d3ee');
+    expect(neon).toContain('--theme-primary-alpha-60: #22d3ee60');
+    expect(neon).toContain('color:var(--theme-primary-safe-on-dark)');
+    const coder = await generateHtml(pdfResumeFixture('coder'));
+    expect(coder).toContain('color:var(--theme-primary-safe-on-dark)');
+    expect(coder).toContain('color:var(--theme-accent-safe-on-dark)');
+  });
+
+  it('深色用户主色被提亮为可读标题色', async () => {
+    const neon = await generateHtml({
+      ...pdfResumeFixture('neon'),
+      themeConfig: { primaryColor: '#1a1a1a' },
+    });
+    // #1a1a1a 过暗，safe-on-dark 应注入提亮后的色而非原值
+    expect(neon).not.toContain('--theme-primary-safe-on-dark: #1a1a1a');
+    expect(neon).toContain('color:var(--theme-primary-safe-on-dark)');
+  });
+
+  it('japanese 对齐后分节标题跟随主题（默认暖灰）', async () => {
+    const html = await generateHtml(pdfResumeFixture('japanese'));
+    expect(html).toContain('--theme-primary-color: #a8a29e');
+    expect(html).toContain('color:var(--theme-primary-color)');
+  });
+
+  it('two-column 与 sidebar 主栏标题分别跟随主色/辅色', async () => {
+    const tc = await generateHtml(pdfResumeFixture('two-column'));
+    expect(tc).toContain('color:var(--theme-primary-color)');
+    const sb = await generateHtml(pdfResumeFixture('sidebar'));
+    expect(sb).toContain('color:var(--theme-primary-color)');
+    expect(sb).toContain('border-color:var(--theme-accent-color)');
+    expect(sb).toContain('--theme-accent-color: #3b82f6');
+  });
+});
