@@ -130,3 +130,7 @@ push 后 CI 无 Node 20 弃用警告且全绿（quality + docker 冒烟）。规
 | 落地页 | 1373 KB | 911 KB | -34% |
 
 模板库最终总下载（首屏 + 全部 50 chunk ≈ 1900+ KB）高于静态版 → 按决策矩阵追加**可视区懒挂载**（LazyPreview，IntersectionObserver rootMargin 400px）：实际下载收敛为「首屏 947 + 用户浏览到的模板 chunk」。仓库总静态资产 5.14→6.24 MB（chunk 碎片化开销，不影响按页加载口径）。测量脚本：`scripts/measure-first-load-js.ts`。
+
+## 新发现（2026-10-25 收尾时）
+
+`POST /api/resume` 不校验 `template` 字段合法性：传入无效模板名（如笔误）会静默创建脏数据简历，导出时按防御逻辑回退 classic 渲染——builder 层的回退是设计行为，但**入口校验缺失会让用户存下错误模板名的简历**。建议：create/update 路由对 `template ∈ TEMPLATES` 校验，非法值 400 或回落 classic 并在响应中标注。规模：小。
