@@ -6,6 +6,20 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 
 ## [Unreleased]
 
+### 修复
+
+- 简历接口：create/update 校验模板名合法性，无效值返回 400，不再静默存库后按 classic 渲染。
+
+### 变更
+
+- 工具链：CI 与 Docker 镜像的 Node 版本对齐至 24（与本地一致，消除「本地过 CI 挂」的版本偏差）。
+- 工具链：`next.config` 的 standalone 输出改为仅 Docker 构建启用（`NEXT_OUTPUT=standalone`），本地 `next start` 不再输出不兼容警告。
+- 工具链：ESLint 对测试文件降级 `no-explicit-any`（测试 fixture 的 `any` 表达「任意输入」语义），警告数 161→124。
+
+### 新增
+
+- 防回归网：主题覆盖回归测试（字面色标题模板集合不得超出文档化保留清单，有意保留需同步测试与矩阵文档）；首屏 JS 预算断言接入 CI（模板库 ≤1150KB / 编辑器 ≤2100KB / 落地页 ≤1100KB）。
+
 ## [v0.8.0] - 2026-10-25
 
 ### 新增
