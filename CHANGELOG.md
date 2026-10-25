@@ -23,7 +23,7 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 - 同步上游 217 个提交，并入面试官侧招聘模块与 Electron 桌面客户端；随后移除桌面客户端，重新聚焦 Docker Web 部署。
 - README 本土化为纯中文，移除英文版与废弃的 zh-CN README，并补充 OrcaRouter 等 AI 提供商配置说明；整理仓库忽略规则，停止追踪 AI 工具产物。
 - 文档：补充 WSL 开发说明——`~/.local/bin` 中转发到 Windows `chrome.exe` 的包装脚本经实测可用于 PDF 导出（经 WSL interop 驱动）；若浏览器启动阶段挂起，再设置 `CHROME_PATH` 指向 Linux 原生浏览器。
-- 文档：新增主题色覆盖矩阵审计（`scripts/audit-theme-coverage.ts` 可再生成）：42/50 模板标题为内联色、不跟随用户主题色，为主题一致性改造提供量化基线；修正 AGENTS.md 对不存在的 `docs/ARCHITECTURE.md` 的引用。
+- 文档：新增主题色覆盖矩阵审计（`scripts/audit-theme-coverage.ts` 可再生成）：当前 40/50 模板存在字面色标题、不跟随用户主题色（首批已迁移 3 套），为主题一致性改造提供量化基线；修正 AGENTS.md 对不存在的 `docs/ARCHITECTURE.md` 的引用。
 
 ### 修复
 
@@ -38,6 +38,7 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 - 保存：修复并发保存被 `isSaving` 早退丢弃、`flushSave` 提前放行、卸载时在飞请求失去串行化；AI 对话与重试统一走 `flushSave`。
 - 技能板块：自动保存不再清除正在编辑的空白技能行（skills 数组中的空字符串条目），修复新增技能行在保存后消失的问题。
 - 模板导出：`TEMPLATE_BUILDERS` 与 `TEMPLATES` 建立编译期一一对应，新增模板漏配导出实现会在类型检查与测试中失败，不再静默回退 classic 样式；新增 50 套模板导出 HTML 全量回归（姓名、summary 末行、二维码分节哨兵断言）。
+- 主题色：elegant / modern / professional 的标题改走 `var(--theme-primary-color)`，用户设置的主色首次对这三套模板生效；未设置时通过按模板默认色表 `TEMPLATE_PRIMARY_DEFAULTS` 保持原有外观（金 / 红 / 藏青），主题编辑器的任意改动也不会再把全局默认色误烘焙进这三套模板。
 - 数据完整性：板块内容校验失败时只丢弃非法条目并保留其余条目，不再整段清空；匿名会话 cookie 与 `x-fingerprint` 不一致时以签名 cookie 为准，不再永久 401。
 - 字体：导出 HTML/PDF 内嵌 Inter 可变字体；DOCX 不再写入终端未安装的内置字体，回退 Microsoft YaHei；衬线/等宽字体栈把通用族放在内置中文字体之前，避免 PDF 中 Georgia/Courier 被替换。
 - 主题：读取时解码旧版 JSON 字符串/字符键 themeConfig；颜色输入框支持逐字输入 6 位色值。

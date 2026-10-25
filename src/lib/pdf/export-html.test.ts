@@ -32,8 +32,8 @@ const REQUIRED_PDF_PAGINATION_SNIPPETS = [
 const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   {
     fixtureName: 'modern-long-content',
-    expectedLength: 57484,
-    expectedSha256: '7f2507d9301837941e820b122d3c2561127f9e249949db20ee84f2c3be75dd42',
+    expectedLength: 57617,
+    expectedSha256: 'daf1676532120d3a85d031ec38db4d2bf4e8d83dd55ee99604a10d032f3ce96f',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',

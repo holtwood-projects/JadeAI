@@ -75,3 +75,14 @@ test('buildThemeCss only emits normalized theme values', () => {
   expect(css).toMatch(/padding-right: 60px !important/);
   expect(css).toMatch(/--base-section-spacing: 64px/);
 });
+
+test('per-template primary defaults fill in only when the user set no color', () => {
+  // Untouched resume on elegant keeps its designed gold headings.
+  expect(mergeThemeConfig(null, 'elegant').primaryColor).toBe('#d4af37');
+  expect(mergeThemeConfig({}, 'modern').primaryColor).toBe('#e94560');
+  // An explicit color always wins over the template default.
+  expect(mergeThemeConfig({ primaryColor: '#ff0000' }, 'elegant').primaryColor).toBe('#ff0000');
+  // Templates without a registered default fall back to the global default.
+  expect(mergeThemeConfig(null, 'classic').primaryColor).toBe(DEFAULT_THEME.primaryColor);
+  expect(mergeThemeConfig(null).primaryColor).toBe(DEFAULT_THEME.primaryColor);
+});

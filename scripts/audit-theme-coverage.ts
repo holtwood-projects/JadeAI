@@ -2,10 +2,11 @@
  * 主题色覆盖矩阵审计：对 50 套导出模板逐一检测「标题是否跟随用户主题色」。
  *
  * 判定依据（与 buildThemeCss 的导出垫片行为一一对应）：
- * - 标题元素带内联 style 且含 color → 被 `:not([style*="color"])` 排除，
+ * - 标题无内联 color → 主题规则特异性 (0,2,0) 压过工具类 (0,1,0) 且
+ *   后置，主题色生效。
+ * - 标题内联 color:var(--theme-primary-color) → 显式接线，主题色生效。
+ * - 标题内联字面色（hex/rgb 等）→ 被 `:not([style*="color"])` 排除，
  *   主题色不生效（固定为模板自带色）。
- * - 标题元素无内联 color（含只有 Tailwind 色类的）→ 主题规则特异性
- *   (0,2,0) 压过工具类 (0,1,0) 且后置，主题色生效。
  *
  * 运行：node --import tsx scripts/audit-theme-coverage.ts
  * 输出 markdown 表格，建议重定向到 docs/research/theme-color-coverage.md。
@@ -16,6 +17,7 @@ import { pdfResumeFixture } from '@/lib/pdf/resume-pdf.fixtures';
 
 const HEADING_RE = /<h([1-3])[^>]*>/g;
 const STYLE_COLOR_RE = /style="[^"]*color\s*:/i;
+const THEME_VAR_RE = /color\s*:\s*var\(--theme-primary-color\)/i;
 
 interface Row {
   template: string;
@@ -33,16 +35,18 @@ async function main() {
     };
     const html = await generateHtml(resume);
     let headings = 0;
-    let inlineColored = 0;
+    let themeFollowing = 0;
     for (const tag of html.match(HEADING_RE) ?? []) {
       headings += 1;
-      if (STYLE_COLOR_RE.test(tag)) inlineColored += 1;
+      // Follows theme: no inline color (cascade rule applies) or explicitly
+      // wired to the theme variable. Fixed: inline literal color.
+      if (!STYLE_COLOR_RE.test(tag) || THEME_VAR_RE.test(tag)) themeFollowing += 1;
     }
     rows.push({
       template,
       headings,
-      inlineColored,
-      themeFollowing: headings - inlineColored,
+      inlineColored: headings - themeFollowing,
+      themeFollowing,
     });
   }
 

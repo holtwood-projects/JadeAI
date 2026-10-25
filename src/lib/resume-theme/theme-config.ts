@@ -1,7 +1,21 @@
 import { resolveFontStack } from '@/lib/font-stacks';
 import { parseThemeConfig } from '@/lib/resume/parse-theme-config';
+import type { Template } from '@/lib/constants';
 import type { ThemeConfig } from '@/types/resume';
 import { DEFAULT_THEME } from './default-theme';
+
+/**
+ * Per-template default heading colors. Templates whose section headings are
+ * an identity color (not a neutral text color) register that color here so an
+ * untouched resume keeps its designed look, while an explicit user color
+ * still overrides it everywhere (preview, PDF, HTML). Mirrors the
+ * template-styles layering already used by the DOCX exporter.
+ */
+export const TEMPLATE_PRIMARY_DEFAULTS: Partial<Record<Template, string>> = {
+  elegant: '#d4af37',
+  modern: '#e94560',
+  professional: '#1e3a5f',
+};
 
 const FONT_SIZES = new Set(['small', 'medium', 'large']);
 const GENERIC_FAMILIES = new Set([
@@ -114,7 +128,7 @@ export function normalizeThemeConfig(theme?: ThemeConfigInput | null): ThemeConf
   };
 }
 
-export function mergeThemeConfig(theme?: ThemeConfigInput | null): ThemeConfig {
+export function mergeThemeConfig(theme?: ThemeConfigInput | null, template?: string): ThemeConfig {
   let parsed: Partial<ThemeConfig> | null = null;
   try {
     parsed = parseThemeConfig(theme);
@@ -122,8 +136,13 @@ export function mergeThemeConfig(theme?: ThemeConfigInput | null): ThemeConfig {
     parsed = null;
   }
   const source = (parsed || {}) as ThemeConfigInput;
+  // Merge order: global default → per-template default → user input. A stored
+  // themeConfig without an explicit primaryColor keeps the template's designed
+  // heading color; any explicit color (user picker, preset) always wins.
+  const templatePrimary = template ? TEMPLATE_PRIMARY_DEFAULTS[template as Template] : undefined;
   return normalizeThemeConfig({
     ...DEFAULT_THEME,
+    ...(templatePrimary ? { primaryColor: templatePrimary } : {}),
     ...source,
     margin: {
       ...DEFAULT_THEME.margin,
