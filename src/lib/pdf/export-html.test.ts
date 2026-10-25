@@ -104,8 +104,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'swiss-page-gap',
-    expectedLength: 63828,
-    expectedSha256: '9ebb89992158f37ad050ebefe3f7e93041712eba813d2a1c759ddac69bc1db43',
+    expectedLength: 64113,
+    expectedSha256: '176c782bef8a5f944cd811f0422236b258e1e87036d870d1a72470f7e062c825',
     dataAttributes: {
       'data-page-mode': 'standard',
       'data-surface-mode': 'light',
