@@ -40,7 +40,7 @@ JadeAI 是一个 AI 驱动的简历与求职工作台（Next.js / React / TypeSc
 - 模板导出：`TEMPLATE_BUILDERS` 与 `TEMPLATES` 建立编译期一一对应，新增模板漏配导出实现会在类型检查与测试中失败，不再静默回退 classic 样式；新增 50 套模板导出 HTML 全量回归（姓名、summary 末行、二维码分节哨兵断言）。
 - 主题色：elegant / modern / professional 的标题改走 `var(--theme-primary-color)`，用户设置的主色首次对这三套模板生效；未设置时通过按模板默认色表 `TEMPLATE_PRIMARY_DEFAULTS` 保持原有外观（金 / 红 / 藏青），主题编辑器的任意改动也不会再把全局默认色误烘焙进这三套模板。
 - 主题色（第二批）：creative、designer、startup、formal、euro、clean、material、retro、gradient、watercolor、rose、architect、legal 十三套全量迁移，teacher（仅姓名）、luxe（仅分节标题）部分迁移；未设置主题色时外观不变。药丸式标题（teacher/medical）与深色背景模板（neon 等）因对比度风险暂缓，见 `docs/research/theme-color-coverage.md`。
-- 主题色（第三批）：executive、timeline、nordic、corporate、consultant、finance、metro、blocks、magazine、artistic、swiss、berlin、scientist、engineer、card、zigzag 十六套中性深色标题模板全量迁移；累计 29 套跟随主题色。发现 japanese 存在预览与导出的色板漂移（分节标题两侧颜色不同），暂缓迁移待对齐，详见矩阵文档。
+- 主题色（第三批）：executive、timeline、nordic、corporate、consultant、finance、metro、blocks、magazine、artistic、swiss、berlin、scientist、engineer、card、zigzag 十六套中性深色标题模板全量迁移；至此 50 套中 39 套标题跟随主题色（31 套迁移 + 8 套原生跟随），按模板默认色表收录 34 条。发现 japanese 存在预览与导出的色板漂移（分节标题两侧颜色不同），暂缓迁移待对齐，详见矩阵文档。
 - 数据完整性：板块内容校验失败时只丢弃非法条目并保留其余条目，不再整段清空；匿名会话 cookie 与 `x-fingerprint` 不一致时以签名 cookie 为准，不再永久 401。
 - 字体：导出 HTML/PDF 内嵌 Inter 可变字体；DOCX 不再写入终端未安装的内置字体，回退 Microsoft YaHei；衬线/等宽字体栈把通用族放在内置中文字体之前，避免 PDF 中 Georgia/Courier 被替换。
 - 主题：读取时解码旧版 JSON 字符串/字符键 themeConfig；颜色输入框支持逐字输入 6 位色值。
