@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolveUser, getUserIdFromRequest } from '@/lib/auth/helpers';
 import { interviewRepository } from '@/lib/db/repositories/interview.repository';
 import { generatePdf } from '@/lib/pdf/generate-pdf';
+import { PdfRenderBusyError, withResumePdfSlot } from '@/lib/pdf/render-limit';
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from '@/lib/rate-limit';
 import { generateInterviewReportHtml } from './html';
 import { dbReady } from '@/lib/db';
 
@@ -16,6 +18,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const user = await resolveUser(fingerprint);
     if (!user) return new Response('Unauthorized', { status: 401 });
 
+    const rate = checkRateLimit(getRateLimitKey('interview-report-export', user, request), {
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+
     const session = await interviewRepository.findSession(sessionId);
     if (!session || session.userId !== user.id) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -27,7 +35,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const html = generateInterviewReportHtml(report, session);
-    const pdfBuffer = await generatePdf(html);
+    // Share the same global Chromium concurrency bound as resume PDFs instead
+    // of launching an unbounded number of renderers.
+    const pdfBuffer = await withResumePdfSlot(() =>
+      generatePdf(html, { signal: request.signal })
+    );
 
     const title = session.jobTitle || 'interview-report';
     const date = new Date(session.createdAt).toISOString().slice(0, 10);
@@ -37,10 +49,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
+        'Cache-Control': 'private, no-store',
         'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}.pdf"`,
       },
     });
   } catch (error) {
+    if (error instanceof PdfRenderBusyError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 429, headers: { 'Retry-After': '2' } }
+      );
+    }
     console.error('GET /api/interview/[id]/report/export error:', error);
     return new Response('Internal server error', { status: 500 });
   }

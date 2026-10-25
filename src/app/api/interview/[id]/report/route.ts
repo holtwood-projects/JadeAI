@@ -5,7 +5,7 @@ import { resolveUser, getUserIdFromRequest } from '@/lib/auth/helpers';
 import { interviewRepository } from '@/lib/db/repositories/interview.repository';
 import { interviewReportSchema } from '@/lib/ai/interview-report-schema';
 import { extractJson } from '@/lib/ai/extract-json';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 import { dbReady } from '@/lib/db';
 import type { InterviewerConfig } from '@/types/interview';
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const user = await resolveUser(fingerprint);
   if (!user) return new Response('Unauthorized', { status: 401 });
 
-  const rate = checkRateLimit(`interview-report:${user.id}`, { limit: 20, windowMs: 60_000 });
+  const rate = checkRateLimit(getRateLimitKey('interview-report', user, request), { limit: 20, windowMs: 60_000 });
   if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
   // Ownership check — the GET handler must scope the report to the caller's session,
@@ -42,6 +42,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const user = await resolveUser(fingerprint);
     if (!user) return new Response('Unauthorized', { status: 401 });
 
+    // Generation is the expensive path (one LLM call with a large output cap);
+    // the GET handler already rate-limits reads, but POST was unbounded.
+    const rate = checkRateLimit(
+      getRateLimitKey('interview-report-gen', user, request),
+      { limit: 10, windowMs: 60_000 }
+    );
+    if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+
     const session = await interviewRepository.findSession(sessionId);
     if (!session || session.userId !== user.id) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -51,7 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (existing) return NextResponse.json(existing);
 
     const { model: modelId, locale = 'zh' } = await request.json();
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig, modelId);
 
     const roundsWithMessages = await interviewRepository.findAllMessagesBySessionId(sessionId);

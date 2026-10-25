@@ -150,8 +150,13 @@ export function getFingerprintIdentityFromRequest(
   );
   const headerFingerprint = normalizeFingerprint(request.headers.get(FINGERPRINT_HEADER));
   if (cookieFingerprint) {
+    // The signed cookie is the durable identity. Rejecting a mismatching
+    // header locked users out for up to a year (no rebind path); treat the
+    // cookie as authoritative and only warn about the divergence.
     if (headerFingerprint && headerFingerprint !== cookieFingerprint) {
-      return null;
+      console.warn(
+        '[auth] X-Fingerprint does not match the anonymous session cookie; using the cookie identity.'
+      );
     }
     return { type: 'fingerprint', source: 'cookie', fingerprint: cookieFingerprint };
   }

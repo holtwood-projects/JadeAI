@@ -25,8 +25,19 @@ if ! docker buildx version >/dev/null 2>&1; then
   exit 1
 fi
 
+if [ "${ALLOW_DIRTY_WORKTREE:-false}" != "true" ] && [ -n "$(git -C "$SCRIPT_DIR" status --porcelain)" ]; then
+  echo "Working tree is dirty. Commit or stash your changes, or set ALLOW_DIRTY_WORKTREE=true to override."
+  exit 1
+fi
+
+CURRENT_BRANCH="$(git -C "$SCRIPT_DIR" branch --show-current)"
+if [ "${ALLOW_NON_MAIN_BRANCH:-false}" != "true" ] && [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "Refusing to publish from branch '$CURRENT_BRANCH'. Switch to main or set ALLOW_NON_MAIN_BRANCH=true."
+  exit 1
+fi
+
 if [ "${SKIP_RELEASE_CHECK:-false}" != "true" ]; then
-  pnpm release:check
+  pnpm --dir "$SCRIPT_DIR" run release:check
 fi
 
 normalize_proxy_for_build() {

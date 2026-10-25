@@ -7,11 +7,11 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEditorStore } from '@/stores/editor-store';
+import { useResumeStore } from '@/stores/resume-store';
 import { useSettingsStore, getAIHeaders } from '@/stores/settings-store';
 import { useAIChat } from '@/hooks/use-ai-chat';
 import { useMessagePagination } from '@/hooks/use-message-pagination';
 import type { AIChatErrorKind, AIChatMessageMetadata, AIChatStatus, AIChatUIMessage } from '@/types/ai';
-import { ensureResumeStoreSyncedBeforeAI } from '@/lib/ai/resume-sync-guard';
 import { isEmptyAssistantResponseErrorText } from '@/lib/ai/chat-response-status';
 import { AIMessage } from './ai-message';
 import { AIInput } from './ai-input';
@@ -259,7 +259,7 @@ export function AIChatContent({ resumeId, hideTitle }: AIChatContentProps) {
 
     try {
       try {
-        await ensureResumeStoreSyncedBeforeAI();
+        await useResumeStore.getState().flushSave();
       } catch (syncError) {
         const message = syncError instanceof Error ? syncError.message : t('errorMessage');
         toast.error(t('errorMessage'), { description: message });

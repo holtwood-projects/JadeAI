@@ -4,8 +4,8 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as schema from '../schema';
 import { resolveMigrationsDir } from '../migrations-dir';
 import type { DatabaseAdapter, TransactionCallback } from '../adapter';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { config } from '../../config';
 
 function getErrorCode(error: unknown): string | undefined {
@@ -30,6 +30,28 @@ function isConcurrentMigrationError(error: unknown): boolean {
   return getErrorCode(error) === 'SQLITE_ERROR' && getErrorMessage(error).includes('already exists');
 }
 
+/**
+ * `already exists` is usually another process racing the same migration, but
+ * it can also mean a migration ran on a half-applied schema. Only tolerate the
+ * former: the migration ledger must have advanced to the newest journal entry,
+ * which cannot happen when a transaction rolled back.
+ */
+function isMigrationLedgerCurrent(sqlite: Database.Database, migrationsDir: string): boolean {
+  try {
+    const journal = JSON.parse(
+      readFileSync(join(migrationsDir, 'meta', '_journal.json'), 'utf8')
+    ) as { entries?: { when?: number }[] };
+    const expected = journal.entries?.at(-1)?.when;
+    if (typeof expected !== 'number') return false;
+    const row = sqlite
+      .prepare('SELECT MAX(created_at) AS applied FROM __drizzle_migrations')
+      .get() as { applied: number | string | null } | undefined;
+    return Number(row?.applied ?? NaN) >= expected;
+  } catch {
+    return false;
+  }
+}
+
 function isConcurrentSeedError(error: unknown): boolean {
   return getErrorCode(error) === 'SQLITE_CONSTRAINT_UNIQUE' && getErrorMessage(error).includes('users.fingerprint');
 }
@@ -47,10 +69,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
     this.db = drizzle(this.sqlite, { schema });
 
     // Auto-run migrations (synchronous for SQLite)
+    const migrationsDir = resolveMigrationsDir(process.env, process.cwd());
     try {
-      migrate(this.db, { migrationsFolder: resolveMigrationsDir(process.env, process.cwd()) });
+      migrate(this.db, { migrationsFolder: migrationsDir });
     } catch (e) {
-      if (isConcurrentMigrationError(e)) {
+      if (isConcurrentMigrationError(e) && isMigrationLedgerCurrent(this.sqlite, migrationsDir)) {
+        // Another process finished the same migration batch first.
         return;
       }
       console.error('[DB] SQLite migration failed:', e);
@@ -79,8 +103,10 @@ export class SQLiteAdapter implements DatabaseAdapter {
       if (isConcurrentSeedError(e)) {
         return;
       }
-      console.error('[DB] SQLite auto-seed failed:', e);
-      throw e;
+      // Demo data is optional. initialize() only rejects on migration errors;
+      // a transient seed failure (busy_timeout, disk pressure) must not turn
+      // dbReady into a permanently rejected promise for the whole process.
+      console.error('[DB] SQLite auto-seed failed (continuing without demo data):', e);
     }
   }
 

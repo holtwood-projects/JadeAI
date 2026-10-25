@@ -1,4 +1,4 @@
-CREATE TABLE "recruit_candidates" (
+CREATE TABLE IF NOT EXISTS "recruit_candidates" (
 	"id" text PRIMARY KEY NOT NULL,
 	"job_id" text NOT NULL,
 	"name" text DEFAULT '' NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE "recruit_candidates" (
 	"updated_at" integer DEFAULT extract(epoch from now())::integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "recruit_evaluations" (
+CREATE TABLE IF NOT EXISTS "recruit_evaluations" (
 	"id" text PRIMARY KEY NOT NULL,
 	"candidate_id" text NOT NULL,
 	"overall_score" integer NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE "recruit_evaluations" (
 	CONSTRAINT "recruit_evaluations_candidate_id_unique" UNIQUE("candidate_id")
 );
 --> statement-breakpoint
-CREATE TABLE "recruit_jobs" (
+CREATE TABLE IF NOT EXISTS "recruit_jobs" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"title" text NOT NULL,

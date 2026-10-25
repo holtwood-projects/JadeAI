@@ -188,13 +188,43 @@ function ensureSectionItemIds(content: unknown): unknown {
  * structure and falls back to an empty section on malformed input, so a
  * bad section can never corrupt a resume or break rendering/export.
  */
+function listSchemaFor(type: ResumeSectionType): {
+  key: 'items' | 'categories';
+  item: z.ZodType;
+} | null {
+  const shape = (schemaByType[type] as z.ZodObject<z.ZodRawShape>).shape;
+  for (const key of ['items', 'categories'] as const) {
+    const candidate = shape[key];
+    if (candidate instanceof z.ZodArray) {
+      return { key, item: candidate.element as z.ZodType };
+    }
+  }
+  return null;
+}
+
 export function safeNormalizeResumeSectionContent(type: string, content: unknown): unknown {
   if (!isResumeSectionType(type)) {
     return content && typeof content === 'object' ? content : {};
   }
-  try {
-    return schemaByType[type].parse(ensureSectionItemIds(content));
-  } catch {
-    return emptyResumeSectionContent(type);
+  const withIds = ensureSectionItemIds(content);
+  const parsed = schemaByType[type].safeParse(withIds);
+  if (parsed.success) return parsed.data;
+
+  // A single malformed AI/import item used to wipe the whole section. Keep
+  // every valid entry and drop only the broken ones, with a warning.
+  const list = listSchemaFor(type);
+  if (list && withIds && typeof withIds === 'object') {
+    const entries = (withIds as Record<string, unknown>)[list.key];
+    if (Array.isArray(entries)) {
+      const kept = entries.flatMap((entry) => {
+        const result = list.item.safeParse(entry);
+        if (result.success) return [result.data];
+        console.warn(`[resume] dropped invalid ${type}.${list.key} entry`, result.error.issues);
+        return [];
+      });
+      return { [list.key]: kept };
+    }
   }
+
+  return emptyResumeSectionContent(type);
 }

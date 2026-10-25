@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveCurrentUser } from '@/lib/auth/helpers';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const currentUser = await resolveCurrentUser({ request });
     if (!currentUser) return new Response('Unauthorized', { status: 401 });
 
-    const rate = checkRateLimit(`linkedin-photo:${currentUser.user.id}`, { limit: 10, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('linkedin-photo', currentUser.user, request), { limit: 10, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const apiKey = request.headers.get('x-api-key');

@@ -124,6 +124,7 @@ JadeAI 是一个面向简历编辑、AI 优化和求职准备的全栈应用。�
 - **分享链接**：支持密码保护与访问统计
 - **浏览统计**：追踪分享简历的查看次数
 - **本地 PDF 渲染依赖**：优先使用系统 Chrome / Chromium。生产环境建议设置 `CHROME_PATH` 指向已安装的浏览器；如确实需要运行时下载 bundled Chromium，必须显式设置 `ALLOW_CHROMIUM_DOWNLOAD=true`。
+- **WSL 开发注意**：PATH 自动探测会命中转发到 Windows `chrome.exe` 的 bash 包装脚本（常见于 `~/.local/bin/chromium`），跨边界启动会让 Puppeteer 挂起直到超时。WSL 下必须设置 `CHROME_PATH` 指向 Linux 原生浏览器（如 `chrome-headless-shell`）。
 - **PDF 分页引擎**：`fit-one-page` 与 `prevent-blank-page` 现在共用同一个分页策略入口，并可在 `node --import tsx scripts/benchmark-pdf-layout.ts` 中输出分页 telemetry，便于比较不同渲染引擎与压缩效果。
 
 ### 简历管理
@@ -360,6 +361,10 @@ DATABASE_URL=postgresql://user:pass@host:5432/jadeai
 | `GOOGLE_CLIENT_SECRET` | OAuth 时 | — | Google OAuth 客户端密钥 |
 | `APP_NAME` | 否 | `JadeAI` | 应用显示名称 |
 | `DEFAULT_LOCALE` | 否 | `zh` | 默认语言：`zh` 或 `en` |
+| `TRUST_PROXY` | 否 | `false` | 仅当所有请求都经过可信反向代理时设为 `true`，否则忽略 `X-Forwarded-For` 并按单一地址限流 |
+| `TRUST_PROXY_HOPS` | 否 | `1` | 可信代理层数；`TRUST_PROXY=true` 时从 `X-Forwarded-For` 右侧取第 N 个地址作为客户端 IP |
+
+> **匿名模式与限流：** `AUTH_ENABLED=false`（默认）时，`x-fingerprint` 是客户端可伪造的标识。为防止轮换指纹绕过限流，AI 与简历相关接口改为按客户端地址分桶；未设置 `TRUST_PROXY=true` 时，所有匿名请求共享同一个限流桶。多人部署建议启用 OAuth，或在反向代理后设置 `TRUST_PROXY=true`，让每个真实 IP 独立计数。
 
 ## 项目结构
 
@@ -408,6 +413,7 @@ src/
 | `DB_TYPE=postgresql` + `DATABASE_URL` | 使用 PostgreSQL |
 | 未设置 `DB_TYPE`，但设置了 `DATABASE_URL` | 使用 PostgreSQL，并输出提示要求显式设置 `DB_TYPE=postgresql` |
 | `DB_TYPE=sqlite` | 使用 SQLite；如同时设置 `DATABASE_URL`，会提示该 URL 被忽略 |
+| `DB_TYPE` 为无效值 | 输出警告并使用 SQLite（若同时设置 `DATABASE_URL`，仍按 PostgreSQL 处理） |
 | 生产环境未设置 `DB_TYPE` 且无 `DATABASE_URL` | 为兼容已有安装继续使用 SQLite，并输出提示 |
 
 ## 常用命令

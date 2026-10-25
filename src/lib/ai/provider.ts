@@ -31,7 +31,7 @@ function isNextRequestLike(request: unknown): request is AIConfigRequestLike {
   );
 }
 
-export function extractAIConfig(request: NextRequest): AIConfig {
+export async function extractAIConfig(request: NextRequest): Promise<AIConfig> {
   if (!isNextRequestLike(request)) {
     throw new AIConfigError('Invalid AI request context.');
   }
@@ -48,7 +48,7 @@ export function extractAIConfig(request: NextRequest): AIConfig {
   const apiKey = suppliedApiKey || serverConfig?.apiKey || '';
   const rawBaseURL = request.headers.get('x-base-url');
   if (rawBaseURL) {
-    const validation = validateAIBaseUrl(rawBaseURL);
+    const validation = await validateAIBaseUrl(rawBaseURL);
     if (!validation.ok) {
       throw new AIConfigError(validation.reason);
     }
@@ -56,6 +56,42 @@ export function extractAIConfig(request: NextRequest): AIConfig {
   const baseURL = rawBaseURL || serverConfig?.baseURL || defaults.baseURL;
   const model = request.headers.get('x-model') || serverConfig?.model || defaults.model;
   return { provider, apiKey, baseURL, model };
+}
+
+/**
+ * SSRF guard for provider requests: validateAIBaseUrl checks the initial host,
+ * but fetch() follows redirects by default and a 302 to an internal address
+ * would bypass that check. Refuse cross-origin redirects and only follow a
+ * single same-origin GET redirect explicitly.
+ */
+function createGuardedFetch(baseUrl: string): typeof fetch {
+  let allowedOrigin: string;
+  try {
+    allowedOrigin = new URL(baseUrl).origin;
+  } catch {
+    return fetch;
+  }
+
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const response = await fetch(input, { ...init, redirect: 'manual' });
+    if (response.status < 300 || response.status >= 400) return response;
+
+    const location = response.headers.get('location');
+    const method = (init?.method ?? 'GET').toUpperCase();
+    if (location && method === 'GET') {
+      const current = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url;
+      const next = new URL(location, current);
+      if (next.origin === allowedOrigin) {
+        return fetch(next, { ...init, redirect: 'manual' });
+      }
+    }
+
+    throw new AIConfigError('AI provider redirected outside the configured origin; refusing to follow.');
+  }) as typeof fetch;
 }
 
 export function getModel(config: AIConfig, modelOverride?: string) {
@@ -66,15 +102,27 @@ export function getModel(config: AIConfig, modelOverride?: string) {
 
   switch (config.provider) {
     case 'anthropic': {
-      const p = createAnthropic({ apiKey: config.apiKey, baseURL: config.baseURL || undefined });
+      const p = createAnthropic({
+        apiKey: config.apiKey,
+        baseURL: config.baseURL || undefined,
+        fetch: createGuardedFetch(config.baseURL),
+      });
       return p(modelId);
     }
     case 'gemini': {
-      const p = createGoogleGenerativeAI({ apiKey: config.apiKey, baseURL: config.baseURL || undefined });
+      const p = createGoogleGenerativeAI({
+        apiKey: config.apiKey,
+        baseURL: config.baseURL || undefined,
+        fetch: createGuardedFetch(config.baseURL),
+      });
       return p(modelId);
     }
     default: {
-      const p = createOpenAI({ apiKey: config.apiKey, baseURL: config.baseURL });
+      const p = createOpenAI({
+        apiKey: config.apiKey,
+        baseURL: config.baseURL,
+        fetch: createGuardedFetch(config.baseURL),
+      });
       return p.chat(modelId);
     }
   }

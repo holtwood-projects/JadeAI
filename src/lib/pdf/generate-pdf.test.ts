@@ -25,9 +25,15 @@ test('resolveBrowserLaunchPlan uses a valid CHROME_PATH', () => {
     });
 });
 
-test('resolveBrowserLaunchPlan rejects an invalid CHROME_PATH', () => {
-  expect(
-    () => resolveBrowserLaunchPlan({ CHROME_PATH: '/missing/chromium' }, () => false)).toThrow(/CHROME_PATH points to a missing or inaccessible executable/);
+test('resolveBrowserLaunchPlan falls back when CHROME_PATH is invalid', () => {
+  // Upstream #85: a bad CHROME_PATH must not abort the export; it falls
+  // through to autodetection and the explicit download fallback.
+  expect(() => resolveBrowserLaunchPlan({ CHROME_PATH: '/missing/chromium' }, () => false))
+    .toThrow(/No local Chrome\/Chromium executable found/);
+  expect(resolveBrowserLaunchPlan(
+    { CHROME_PATH: '/missing/chromium', ALLOW_CHROMIUM_DOWNLOAD: 'true' },
+    () => false,
+  )).toEqual({ kind: 'download' });
 });
 
 test('resolveBrowserLaunchPlan requires explicit permission for runtime Chromium download', () => {

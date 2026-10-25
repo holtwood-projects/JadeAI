@@ -32,12 +32,15 @@ RUN set -eux; \
       'Acquire::http::Pipeline-Depth "0";' \
       'Acquire::https::Pipeline-Depth "0";' \
       'Acquire::http::No-Cache "true";' \
+      'Acquire::ForceIPv4 "true";' \
       > /etc/apt/apt.conf.d/80-network-retries; \
-    if [ -n "$DEBIAN_MIRROR" ]; then \
-      sed -E -i "s|https?://deb.debian.org/debian|${DEBIAN_MIRROR%/}|g" /etc/apt/sources.list.d/debian.sources; \
-    fi; \
+    # Replace the security suite first: its URL starts with the main mirror
+    # prefix, so doing it afterwards would never match.
     if [ -n "$DEBIAN_SECURITY_MIRROR" ]; then \
       sed -E -i "s|https?://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR%/}|g" /etc/apt/sources.list.d/debian.sources; \
+    fi; \
+    if [ -n "$DEBIAN_MIRROR" ]; then \
+      sed -E -i "s|https?://deb.debian.org/debian|${DEBIAN_MIRROR%/}|g" /etc/apt/sources.list.d/debian.sources; \
     fi; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates; \
@@ -132,7 +135,6 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
-    CHROME_PATH=/usr/bin/chromium \
     SQLITE_PATH=/app/data/jade.db \
     ALLOW_CHROMIUM_DOWNLOAD=${ALLOW_CHROMIUM_DOWNLOAD} \
     APP_VERSION=${APP_VERSION}

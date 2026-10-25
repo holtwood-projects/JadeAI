@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { extractAIConfig, AIConfigError } from '@/lib/ai/provider';
 import { type ModelListItem } from '@/lib/ai/model-list';
 import { resolveCurrentUser } from '@/lib/auth/helpers';
-import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIp, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
   const currentUser = await resolveCurrentUser({ request });
   if (!currentUser) return new Response('Unauthorized', { status: 401 });
 
-  const rate = checkRateLimit(`models:${currentUser.user.id}`, RATE_LIMIT);
+  const rate = checkRateLimit(getRateLimitKey('models', currentUser.user, request), RATE_LIMIT);
   if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
   let config;
   try {
-    config = extractAIConfig(request);
+    config = await extractAIConfig(request);
   } catch (error) {
     if (error instanceof AIConfigError) {
       return modelListError(error.message, 400);
@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
           ? `${baseURL.replace(/\/$/, '')}/v1/models`
           : 'https://api.anthropic.com/v1/models';
         const res = await fetch(url, {
+          // Do not follow redirects: a 302 to an internal host would bypass
+          // validateAIBaseUrl (SSRF).
+          redirect: 'manual',
           headers: {
             'x-api-key': apiKey,
             'anthropic-version': '2023-06-01',
@@ -79,6 +82,7 @@ export async function GET(request: NextRequest) {
           ? `${baseURL.replace(/\/$/, '')}/models`
           : 'https://generativelanguage.googleapis.com/v1beta/models';
         const res = await fetch(url, {
+          redirect: 'manual',
           headers: { 'x-goog-api-key': apiKey },
         });
         if (!res.ok) return providerFetchError(res, provider);
@@ -93,6 +97,7 @@ export async function GET(request: NextRequest) {
         // openai
         const effectiveBaseURL = baseURL.replace(/\/$/, '');
         const res = await fetch(`${effectiveBaseURL}/models`, {
+          redirect: 'manual',
           headers: { Authorization: `Bearer ${apiKey}` },
         });
         if (!res.ok) return providerFetchError(res, provider);

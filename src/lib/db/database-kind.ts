@@ -22,7 +22,27 @@ export type DatabaseKind = 'postgresql' | 'sqlite';
 export function resolveDatabaseKind(env: Record<string, string | undefined>): DatabaseKind {
   if (env.JADE_RUNTIME === 'desktop') return 'sqlite';
   if (isProductionBuild(env)) return 'sqlite';
-  return env.DB_TYPE === 'postgresql' ? 'postgresql' : 'sqlite';
+
+  const explicit = env.DB_TYPE?.trim().toLowerCase();
+  if (explicit === 'postgresql') return 'postgresql';
+  if (explicit === 'sqlite') return 'sqlite';
+  if (explicit) {
+    console.warn(
+      `[DB] Unsupported DB_TYPE "${env.DB_TYPE}"; expected "sqlite" or "postgresql".`
+    );
+  }
+
+  // Match the documented rule: DATABASE_URL without DB_TYPE means PostgreSQL.
+  // Previously this silently selected SQLite, so a deployment without a volume
+  // could lose data while the README claimed PostgreSQL was in use.
+  if (env.DATABASE_URL?.trim()) {
+    console.warn(
+      '[DB] DATABASE_URL is set without DB_TYPE; defaulting to PostgreSQL. ' +
+      'Set DB_TYPE=postgresql to make this explicit.'
+    );
+    return 'postgresql';
+  }
+  return 'sqlite';
 }
 
 /**

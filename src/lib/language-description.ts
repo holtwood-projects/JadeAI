@@ -32,7 +32,8 @@ export function normalizeLanguageDescriptionsForCompactTemplates<T extends Resum
   const sections = resume.sections.map((section) => {
     if (section.type !== 'languages') return section;
 
-    const content = section.content as LanguagesContent;
+    const content = section.content as LanguagesContent | null;
+    if (!content) return section;
     const items = content.items || [];
     let sectionChanged = false;
 

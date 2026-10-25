@@ -6,6 +6,7 @@
 
 - 上游地址：`https://github.com/LingyiChen-AI/JadeAI`，本地 remote 名为 `upstream`。
 - 最近同步：2026-10-04 → 上游 `aca6fbb`（本仓库 merge `b7402d5`）。此后上游 main 无新提交。
+- 2026-10-21 选择性移植上游 PR #101（`feat/pdf-continuous`）：采纳连续长页、快照 POST 导出、渲染超时/取消/并发保护；**未合并**该分支，因为它与 fork 的 `pagination-strategy.ts` 是两套 PDF 管线，直接 merge 会冲突 12 个文件并造成静默功能倒退。
 - 截至 2026-10-04 同步（v0.7.0）：fork 领先上游约百个提交（精确值用 `git rev-list --count upstream/main..main` 查询）。
 - 版本约定：fork 与上游**共享版本号**（当前 v0.7.0），tag 指向上游对应版本的基线提交（origin 上亦如此），fork 自身增量只在 main 上；仓库不创建 GitHub Release，Docker 镜像从 main HEAD 构建。
 - 定位差异：fork 删除 Electron 桌面客户端及 `desktop-release.yml`，新增/重写 Docker 构建运行链、GitHub Pages 站点、CI 工作流、PDF 分页策略与主题系统等。
@@ -39,6 +40,10 @@ fork 的改动应尽量落在独立的新文件中——以下位置为 fork 自
 | `pnpm-lock.yaml` | 随上游依赖变化 | 可能双方都变 | 合并后必须 `pnpm install --frozen-lockfile` 校验，失败则按上游语义重新生成并回归测试 |
 | `messages/zh.json`、`en.json` | 会新增 key | fork 也频繁修改 | 通常自动合并；合并后用 `node -e "JSON.parse(...)"` 之类校验 JSON 合法 |
 | `.github/workflows/issue-spam-guard.yml` | 同名文件 | fork 自有版本 | 保留 fork |
+| `src/lib/pdf/generate-pdf.ts` | 上游为 `fitContentToOnePage`/`preventNearlyBlankPage` | fork 为 `applyPaginationStrategy` + 已移植的 continuous 渲染 | **保留 fork 的分页策略**；上游对 A4 的修改需手工对照移植，不能整文件替换 |
+| `src/app/api/resume/[id]/export/route.ts` | 上游用 `resolveUser` + 无快照 POST | fork 用 `resolveCurrentUser` + GET/POST 快照导出 | 保留 fork；新增布局参数时同时维护 `fitOnePage` 兼容 |
+| `src/lib/pdf/snapshot-schema.ts` | 上游 PR 新增（`language` 仅 zh/en、`fontFamily` 枚举） | fork 已放开为多语言 + 字体栈字符串 | 保留 fork 的宽松校验，CSS 注入字符仍需拒绝 |
+| `src/components/editor/export-dialog.tsx`、`src/hooks/use-pdf-export.ts` | 上游为 GET 下载 | fork 为 POST 快照 + 连续长页选项 | 保留 fork |
 
 维护者本机 Git 已开启 `git rerere`（`~/.gitconfig` 全局配置；解决方案缓存 `.git/rr-cache` 也只存本机），2026-10-04 的合并已记录 README.md 与 .gitignore 的解决方案，本机重复冲突会自动复用。注意：CI 与其他机器上 rerere **不生效**——需在该环境执行 `git config rerere.enabled true` 并重新积累缓存，或按本表手工处理。
 
@@ -46,6 +51,7 @@ fork 的改动应尽量落在独立的新文件中——以下位置为 fork 自
 
 - **LaunchAI 推广徽章**（上游 `ac7bf23`、`9d95236`，及 `ef3e3af` 中 footer 部分）：上游作者为其关联产品导流。徽章硬编码 `#1f2a24`、`#f8f8f6` 等色值，违反本仓库「主题色必须用语义化 `--brand-*` token」的约束，且引入对 `launchai.tools` 的外部图片依赖。合并后如发现 `launchai` 字样一律剔除：`grep -ri launchai src/ messages/ README.md`。
 - **`.gitignore` 的 `.superpowers/*` 写法**：与 fork 现有 `.superpowers/` 语义等价，无需采纳。
+- **PR #101 分支整体合并**（2026-10-21 评估）：该 PR 的 `generate-pdf.ts` 基于上游旧版分页实现，合并会把 fork 的 728 行 `pagination-strategy.ts` 打回旧逻辑；快照 schema 与本 fork 的多语言、展开字体栈、`team` 字段不兼容。只移植新增文件与能力，`generate-pdf.ts`、`export/route.ts`、`use-ai-chat.ts`、`resume-store.ts` 等共享文件一律以 fork 为基底手工融合。
 
 ## 5. tag 与版本号事实（2026-10-04 全量普查）
 
@@ -98,9 +104,23 @@ grep -ri launchai src/ messages/ README.md
 # 7. 合并提交写明采纳/拒绝了什么；用户可见变化写入 CHANGELOG.md [Unreleased]
 ```
 
+**本地环境备注（WSL/Docker 构建）**：容器 DNS 若只返回 IPv6 而 Docker 无 IPv6 路由，`apt-get update` 会一直 Ignore；Dockerfile 已在 `/etc/apt/apt.conf.d/80-network-retries` 设置 `Acquire::ForceIPv4 "true"`。另外，宿主机代理只监听 `127.0.0.1` 时，容器无法通过 `host.docker.internal` 访问；此时需让代理监听局域网地址，或改用 `docker build --network=host` 并传入 `127.0.0.1` 代理地址。
+
 **本地环境备注**：`.agents/`、`agent/`、`data/`、`.worktrees/` 是 gitignored 的 AI 工具目录。它们已被 `tsconfig.json` 的 `exclude` 与 `eslint.config.mjs` 的 `globalIgnores` 排除，`pnpm lint` / `type-check` / `build` 不再受其影响（CI 全新检出本来也看不到这些目录）。若日后新增 AI 工具目录，同步扩展这两处列表。
 
-## 7. 同步检查自动化
+## 7. 字体能力清单（fork 的核心增量）
+
+上游只有 6 个预设 `fontFamily`，没有组合字体栈、没有本地 `@font-face` 注入。fork 的字体能力由以下部分组成，维护时优先保住这些文件：
+
+- 新增：`src/lib/font-stacks.ts`（预置栈、`@font-face`、DOCX 东西方字体解析）、`src/lib/resume-theme/{build-theme-css,theme-config,default-theme}.ts`
+- 资源：`public/fonts/InterVariable.woff2`、`public/fonts/custom/*`、`public/fonts/NotoSansSC-*` 及对应 LICENSE
+- 接入点：`src/app/layout.tsx`（全局字体）、`src/components/preview/resume-preview.tsx`、`src/components/editor/theme-editor.tsx`、`src/app/api/resume/[id]/export/builders.ts`、`src/app/api/resume/[id]/export/docx.ts`、`src/app/api/resume/[id]/export/route.ts`
+
+字体栈的通用族必须排在 `Noto Sans SC` 之前（`Georgia, serif, "Noto Sans SC"`），否则 Docker PDF 中衬线/等宽字体会被 Noto 的拉丁字形覆盖。DOCX 不写入应用内置字体，eastAsia 回退 `Microsoft YaHei`。
+
+**已恢复的上游行为**：AI 落库统一用 `flushSave()`（#96），删除自研 `resume-sync-guard`；`CHROME_PATH` 不可访问时回退自动探测/下载（#85），不再直接抛错。
+
+## 8. 同步检查自动化
 
 `.github/workflows/upstream-sync.yml` 每周一（UTC）自动运行：fetch 上游 → 统计领先提交数 → 若有新提交且不存在未关闭的提醒 issue，则自动创建「上游同步提醒」issue（附新提交清单与本手册链接）；无新提交时不产生任何动静。支持在 Actions 页面手动触发（workflow_dispatch）。
 

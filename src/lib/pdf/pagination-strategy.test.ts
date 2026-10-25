@@ -43,7 +43,9 @@ test('resolvePaginationStrategyConfig returns fit-one-page settings', () => {
   expect(config.maxIterations).toBe(20);
   expect(config.scaleStepPct).toBe(5);
   expect(config.allowZoom).toBe(true);
-  expect(config.cleanupOnFailure).toBe(false);
+  // A failed fit must restore the original layout instead of keeping the
+  // over-shrunk styles in the generated PDF.
+  expect(config.cleanupOnFailure).toBe(true);
 });
 
 test('resolvePaginationStrategyConfig returns aggressive blank-page settings', () => {

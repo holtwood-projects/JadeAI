@@ -159,7 +159,12 @@ type RestoreResumeVersionDependencies = {
   ) => Promise<RestoreResumeVersionResult>;
   saveCurrentResumeVersion: typeof saveCurrentResumeVersion;
   applyResumeDraftSnapshot: typeof applyResumeDraftSnapshot;
-  getResumeStoreState: () => Pick<ReturnType<typeof useResumeStore.getState>, 'currentResume' | 'save'>;
+  getResumeStoreState: () => Pick<ReturnType<typeof useResumeStore.getState>, 'currentResume' | 'save'> & {
+    // Optional so lightweight test doubles stay valid; the default dependency
+    // returns the full store state.
+    isDirty?: boolean;
+    isSaving?: boolean;
+  };
 };
 
 const defaultRestoreResumeVersionDependencies: RestoreResumeVersionDependencies = {
@@ -207,6 +212,13 @@ export async function restoreResumeVersionRecord(
         source: 'restore',
         forceVersion: true,
       });
+      // resume-store deliberately swallows background save failures. A restore
+      // is a foreground action, so verify the draft actually reached the server
+      // instead of showing a success toast for data that will vanish on reload.
+      const state = dependencies.getResumeStoreState();
+      if (state.isDirty && !state.isSaving) {
+        throw new Error('Restore persistence failed: the restored draft was not saved');
+      }
     },
   });
 }

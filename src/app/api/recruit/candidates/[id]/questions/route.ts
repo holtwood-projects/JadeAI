@@ -19,7 +19,7 @@ import {
   QUESTION_DIMENSION_LABELS,
 } from '@/lib/recruit/dimensions';
 import type { DimensionConfig, InterviewQuestion } from '@/types/recruit';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 export const maxDuration = 300;
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     const access = await requireOwnedCandidate(request, id);
     if ('error' in access) return access.error;
-    const rate = checkRateLimit(`recruit-questions:${access.user.id}`, { limit: 10, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('recruit-questions', access.user, request), { limit: 10, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const { candidate, job } = access;
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'No dimensions configured' }, { status: 400 });
     }
 
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig);
 
     const blueprintPrompt = buildInterviewBlueprintPrompt({

@@ -12,6 +12,12 @@ describe('resolveDatabaseKind', () => {
   it('honours DB_TYPE for a web deployment', () => {
     expect(resolveDatabaseKind({ DB_TYPE: 'postgresql' })).toBe('postgresql');
     expect(resolveDatabaseKind({ DB_TYPE: 'sqlite' })).toBe('sqlite');
+    expect(resolveDatabaseKind({ DB_TYPE: ' PostgreSQL ' })).toBe('postgresql');
+  });
+
+  it('uses PostgreSQL when DATABASE_URL is set without DB_TYPE', () => {
+    expect(resolveDatabaseKind({ DATABASE_URL: 'postgres://user:pass@db/jade' }))
+      .toBe('postgresql');
   });
 
   it('treats an unrecognised DB_TYPE as sqlite rather than failing to start', () => {

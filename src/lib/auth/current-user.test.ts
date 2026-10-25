@@ -74,7 +74,7 @@ test('current user seam resolves identity from signed cookie when present', () =
   });
 });
 
-test('current user seam rejects mismatched header when a signed session cookie exists', () => {
+test('current user seam keeps the signed cookie authoritative when the header differs', () => {
   const cookieValue = createAnonymousSessionCookieValue('trusted-fingerprint', {
     secret: SECRET,
     issuedAt: 1,
@@ -89,7 +89,11 @@ test('current user seam rejects mismatched header when a signed session cookie e
     { secret: SECRET }
   );
 
-  expect(identity).toBe(null);
+  expect(identity).toEqual({
+    type: 'fingerprint',
+    source: 'cookie',
+    fingerprint: 'trusted-fingerprint',
+  });
 });
 
 test('current user seam keeps x-fingerprint fallback when cookie is missing or invalid', () => {

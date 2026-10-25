@@ -129,7 +129,8 @@ export function buildThemeCss({
   }
 
   return `
-    ${selector} {
+    ${selector},
+    ${selector} > div {
       font-family: ${safeTheme.fontFamily} !important;
     }
     ${selector} > div {

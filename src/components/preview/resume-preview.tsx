@@ -147,6 +147,10 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
               theme,
               template: safeResume.template,
               includeNeedsPadding: true,
+              // Keep template-level typography (10-12px dates, badges) intact,
+              // matching the export path instead of forcing every span to the
+              // body size.
+              templateSafeVariables: true,
             }),
           }}
         />

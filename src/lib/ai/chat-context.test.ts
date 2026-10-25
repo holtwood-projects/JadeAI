@@ -47,6 +47,15 @@ function createConversation(pattern: string): UIMessage[] {
   return messages;
 }
 
+test('chat context truncation never starts with an assistant turn', async () => {
+  // 11 turns produce 22 UI messages; the 20-message window starts mid-turn.
+  const messages = createConversation('NNNNNNNNNNN');
+
+  const modelMessages = await buildChatContextMessages(messages);
+
+  expect(modelMessages[0]?.role).toBe('user');
+});
+
 test('chat context truncation does not start with a tool result', async () => {
   const messages = createConversation('TTTNNNNNNNN');
 

@@ -32,8 +32,8 @@ const REQUIRED_PDF_PAGINATION_SNIPPETS = [
 const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   {
     fixtureName: 'modern-long-content',
-    expectedLength: 57273,
-    expectedSha256: '29cbf101fafa0634071d7755aaada4574373095baf61077e01436f59565d0322',
+    expectedLength: 57484,
+    expectedSha256: '7f2507d9301837941e820b122d3c2561127f9e249949db20ee84f2c3be75dd42',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',
@@ -51,8 +51,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'sidebar-long-content',
-    expectedLength: 64470,
-    expectedSha256: '48673addd94baf7a94a0c900b9a9b0e817abe7dc5c95878936eaeb9a0c52cab9',
+    expectedLength: 64681,
+    expectedSha256: 'ebc1199a04af6b14bdc8b63bc6f88a9566cf56bce4dadccb2a3725b8fd3e9f6a',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'sidebar-dark',
@@ -70,8 +70,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'compact-dense',
-    expectedLength: 57331,
-    expectedSha256: '50ae30d0d3e28cfadc46b3cb6accff9ebf957c92fa4090e8d65e1b79d9f83556',
+    expectedLength: 57542,
+    expectedSha256: '0d560f14d0957d8992d96c1706520e5fdfa1e7dd2110c4bbd8ca7b24de11c074',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',
@@ -85,8 +85,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'neon-dark-background',
-    expectedLength: 62906,
-    expectedSha256: 'f1647a608ad643d8fd23f3254e11155bd5ba3acd25476c970f3d3c3075d1c255',
+    expectedLength: 63117,
+    expectedSha256: 'a00f0cb1b115a8b7c1d4d4ea51b6b743d01e2061fea0155e4e459c5ad4b758d8',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'full-dark',
@@ -104,8 +104,8 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
   },
   {
     fixtureName: 'swiss-page-gap',
-    expectedLength: 62455,
-    expectedSha256: '6f281cb4643f985213e79bcb3f311bac2178034417b9532d1d3e10ac619a25cd',
+    expectedLength: 63828,
+    expectedSha256: '9ebb89992158f37ad050ebefe3f7e93041712eba813d2a1c759ddac69bc1db43',
     dataAttributes: {
       'data-page-mode': 'standard',
       'data-surface-mode': 'light',
@@ -117,13 +117,13 @@ const HTML_REGRESSION_CASES: HtmlRegressionCase[] = [
     anchors: ['全栈工程师', '项目经历'],
     snippets: [
       'data-section-heading="wide"',
-      'margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px',
+      'margin-left:calc(-1 * min(10px, var(--base-margin-left, 10px)));margin-right:calc(-1 * min(10px, var(--base-margin-right, 10px)));padding-left:min(10px, var(--base-margin-left, 10px));padding-right:min(10px, var(--base-margin-right, 10px))',
     ],
   },
   {
     fixtureName: 'gradient-page-margin',
-    expectedLength: 65651,
-    expectedSha256: '84c97b0f9fa7d454942bdfe6b6d4ef5c0f14175e7d98f6ce008e03c2658b59dd',
+    expectedLength: 65862,
+    expectedSha256: 'ab80f715c3c882382603baa5b6c934e0f9db3db42dc3d063f673632a00b5e560',
     dataAttributes: {
       'data-page-mode': 'edge-to-edge',
       'data-surface-mode': 'background',

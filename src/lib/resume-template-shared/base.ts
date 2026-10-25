@@ -16,7 +16,7 @@ function isSectionEmpty(section: ResumeSectionLike): boolean {
   // treat it as empty so the section is filtered out.
   if (!content || typeof content !== 'object') return true;
   if (section.type === 'summary') {
-    return !(content as SummaryContent).text;
+    return !String((content as SummaryContent).text ?? '').trim();
   }
   if (section.type === 'skills') {
     const categories = (content as SkillsContent).categories;

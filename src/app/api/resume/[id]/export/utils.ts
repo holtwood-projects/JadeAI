@@ -84,7 +84,11 @@ export function isSectionEmpty(section: Section): boolean {
   // Malformed content (null, primitives) must never break export rendering —
   // treat it as empty so the section is filtered out.
   if (!content || typeof content !== 'object') return true;
-  if (section.type === 'summary') return !(content as SummaryContent).text;
+  // Match the preview's whitespace-only handling so a blank summary is hidden
+  // in every renderer instead of leaving a dangling heading in exports.
+  if (section.type === 'summary') {
+    return !String((content as SummaryContent).text ?? '').trim();
+  }
   if (section.type === 'skills') {
     const categories = (content as SkillsContent).categories;
     return !categories?.length || categories.every((cat: any) => !cat.skills?.length);

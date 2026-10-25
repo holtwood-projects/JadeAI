@@ -16,7 +16,7 @@ import { serializeAssistantMessage } from '@/lib/ai/utils';
 import { resolveAssistantTerminalOutcome } from '@/lib/ai/chat-response-status';
 import { isRetryableErrorKind } from '@/lib/ai/chat-retry-policy';
 import { stripAssistantToolPartsForRecovery } from '@/lib/ai/chat-context-recovery';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse, getRateLimitKey } from '@/lib/rate-limit';
 
 const DEFAULT_CHAT_STREAM_TIMEOUT_MS = 300_000;
 const DEFAULT_CHAT_STREAM_CHUNK_TIMEOUT_MS = 90_000;
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
       return new Response('Unauthorized', { status: 401 });
     }
     const user = currentUser.user;
-    const rate = checkRateLimit(`chat:${user.id}`, { limit: 20, windowMs: 60_000 });
+    const rate = checkRateLimit(getRateLimitKey('chat', user, request), { limit: 20, windowMs: 60_000 });
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     const {
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       resolvedResumeUpdatedAt = resume.updatedAt;
     }
 
-    const aiConfig = extractAIConfig(request);
+    const aiConfig = await extractAIConfig(request);
     const model = getModel(aiConfig, modelId);
     const shouldRebaseContext = shouldRebaseChatContextToLatestResume(
       resolvedSessionUpdatedAt,

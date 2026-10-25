@@ -111,8 +111,9 @@ docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 docker volume rm "$VOLUME_NAME" >/dev/null 2>&1 || true
 docker volume create "$VOLUME_NAME" >/dev/null
 
+# No --init: PID 1 must be the image's own tini, otherwise a missing tini
+# entrypoint would be masked by Docker's init.
 docker run -d \
-  --init \
   --name "$CONTAINER_NAME" \
   --env-file "$ENV_FILE" \
   -p "${HOST_PORT}:3000" \
@@ -121,7 +122,7 @@ docker run -d \
 
 ready=false
 for _ in $(seq 1 60); do
-  if docker exec "$CONTAINER_NAME" wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1; then
+  if docker exec "$CONTAINER_NAME" wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
     ready=true
     break
   fi
@@ -134,11 +135,45 @@ if [ "$ready" != "true" ]; then
   exit 1
 fi
 
+# tini must be PID 1: it reaps Chromium's re-parented helper processes.
+docker exec "$CONTAINER_NAME" sh -c 'test "$(cat /proc/1/comm)" = tini'
+
 if [ "${INSTALL_CHROMIUM:-true}" = "true" ]; then
   docker exec "$CONTAINER_NAME" test -x /usr/bin/chromium
   docker exec "$CONTAINER_NAME" /usr/bin/chromium --version >/dev/null
 fi
 docker exec "$CONTAINER_NAME" test -f /app/data/jade.db
-docker exec "$CONTAINER_NAME" node -e "fetch('http://127.0.0.1:3000/api/ai/models').then((r) => { if (!r.ok) throw new Error('Unexpected status ' + r.status); return r.json(); }).then(() => console.log('API reachable'))"
+# Exercise the real delivery path: create a resume and render both A4 and
+# continuous PDFs. `/api/ai/models` returns 401 without a fingerprint, so it
+# cannot be used as a generic reachability check.
+docker exec "$CONTAINER_NAME" node -e '
+(async () => {
+  const base = "http://127.0.0.1:3000";
+  const health = await fetch(base + "/api/health");
+  if (!health.ok) throw new Error("health check failed: " + health.status);
+
+  const fingerprint = "docker-smoke-" + process.pid;
+  const created = await fetch(base + "/api/resume", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-fingerprint": fingerprint },
+    body: JSON.stringify({ title: "docker smoke", template: "classic", language: "zh" }),
+  });
+  if (!created.ok) throw new Error("create resume failed: " + created.status);
+  const { id } = await created.json();
+
+  // Five exports exercise the tini orphan-reaping path (issue #95); one
+  // continuous render covers the second layout.
+  for (const layout of ["a4", "a4", "a4", "a4", "a4", "continuous"]) {
+    const res = await fetch(base + "/api/resume/" + id + "/export?format=pdf&layout=" + layout, {
+      headers: { "x-fingerprint": fingerprint },
+    });
+    if (!res.ok) throw new Error("PDF export " + layout + " failed: " + res.status);
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.subarray(0, 4).toString() !== "%PDF") throw new Error("invalid PDF for " + layout);
+    console.log("PDF export ok:", layout, bytes.length);
+  }
+  console.log("API reachable");
+})().catch((error) => { console.error(error); process.exit(1); });
+'
 
 echo "Docker smoke passed for $IMAGE_NAME on http://localhost:${HOST_PORT}"

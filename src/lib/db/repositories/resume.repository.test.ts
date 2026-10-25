@@ -56,7 +56,7 @@ test('create persists normalized themeConfig from the POST repository path', asy
     ...DEFAULT_THEME,
     primaryColor: '#aabbcc',
     accentColor: DEFAULT_THEME.accentColor,
-    fontFamily: 'Inter, "Noto Sans SC", sans-serif',
+    fontFamily: 'Inter, sans-serif, "Noto Sans SC"',
     margin: {
       ...DEFAULT_THEME.margin,
       top: 0,
