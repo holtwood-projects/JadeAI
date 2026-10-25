@@ -34,7 +34,7 @@ export function buildThemeCss({
   includeNeedsPadding = true,
   templateSafeVariables = false,
 }: BuildThemeCssOptions): string {
-  const safeTheme = mergeThemeConfig(theme);
+  const safeTheme = mergeThemeConfig(theme, template);
   const fs = FONT_SIZE_SCALE[safeTheme.fontSize] || FONT_SIZE_SCALE.medium;
   const margin = safeTheme.margin;
   const needsPadding = !BACKGROUND_TEMPLATES.has(template);

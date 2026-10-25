@@ -181,7 +181,7 @@ export async function generateHtml(
       ? TEMPLATE_BUILDERS[template as Template]
       : buildClassicHtml;
   const bodyHtml = builder(safeResume);
-  const theme = mergeThemeConfig((safeResume as any).themeConfig);
+  const theme = mergeThemeConfig((safeResume as any).themeConfig, safeResume.template);
   const layoutProfile = getPdfLayoutProfile(safeResume.template);
   const themeCSS = buildExportThemeCSS(theme, safeResume.template);
   const embeddedFontsCss = getEmbeddedFontFacesCss(fontBaseUrl);
